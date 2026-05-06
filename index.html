@@ -2,8 +2,8 @@
 <html lang="tr" class="dark">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Youtipy - Müziğin Dünyası</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Youtipy - Müziğin Ötesinde</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
@@ -11,253 +11,470 @@
     <script src="https://www.youtube.com/iframe_api"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap');
-        body { font-family: 'Plus Jakarta Sans', sans-serif; background-color: #050505; color: white; user-select: none; overflow: hidden; height: 100vh; }
-        .glass { background: rgba(255, 255, 255, 0.03); backdrop-filter: blur(30px); -webkit-backdrop-filter: blur(30px); border: 1px solid rgba(255, 255, 255, 0.08); }
+
+        :root {
+            --glass-bg: rgba(255, 255, 255, 0.03);
+            --glass-border: rgba(255, 255, 255, 0.08);
+            --accent: #6366f1;
+        }
+
+        body {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            background-color: #050505;
+            color: white;
+            user-select: none;
+            overflow: hidden;
+            height: 100vh;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        .glass {
+            background: var(--glass-bg);
+            backdrop-filter: blur(40px);
+            -webkit-backdrop-filter: blur(40px);
+            border: 1px solid var(--glass-border);
+        }
+
+        .light {
+            background-color: #f8fafc;
+            color: #0f172a;
+        }
+        .light .glass {
+            background: rgba(255, 255, 255, 0.7);
+            border: 1px solid rgba(0, 0, 0, 0.05);
+        }
+
         .hide { display: none !important; }
-        #player-bar { transform: translateY(100%); transition: transform 0.5s cubic-bezier(0.22, 1, 0.36, 1); }
+        
+        #player-bar {
+            transform: translateY(100%);
+            transition: transform 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+            z-index: 1000;
+        }
         #player-bar.active { transform: translateY(0); }
-        .nav-link.active { background: linear-gradient(135deg, #4f46e5, #7c3aed); color: white; box-shadow: 0 8px 20px -4px rgba(79, 70, 229, 0.4); }
-        #now-playing-overlay { transition: all 0.5s cubic-bezier(0.22, 1, 0.36, 1); background: linear-gradient(to bottom, #111, #000); z-index: 100; top: 100%; position: fixed; left: 0; right: 0; bottom: 0; height: 100vh; }
+
+        .nav-link.active {
+            background: linear-gradient(135deg, #4f46e5, #7c3aed);
+            color: white;
+            box-shadow: 0 10px 25px -5px rgba(79, 70, 229, 0.4);
+        }
+
+        #now-playing-overlay {
+            transition: all 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+            background: linear-gradient(to bottom, #0f111a, #000);
+            z-index: 2000;
+            top: 100%;
+            position: fixed;
+            left: 0; right: 0; height: 100vh;
+        }
         #now-playing-overlay.active { top: 0; }
-        /* Video kutusunun ekranda kalmasını önleyen CSS */
-        #yt-player-container { position: fixed; top: -1000px; left: -1000px; width: 1px; height: 1px; opacity: 0; pointer-events: none; z-index: -100; }
-        input[type=range] { accent-color: #6366f1; cursor: pointer; }
-        .mobile-sidebar { position: fixed; top: 0; left: -100%; height: 100%; width: 280px; z-index: 200; transition: left 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
-        .mobile-sidebar.active { left: 0; }
+
+        #yt-player-container {
+            position: fixed; top: -1000px; left: -1000px; width: 1px; height: 1px; opacity: 0; pointer-events: none;
+        }
+
+        input[type=range] { accent-color: var(--accent); cursor: pointer; }
+
+        /* Mobil Sidebar */
+        .sidebar-container {
+            transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        @media (max-width: 1024px) {
+            .sidebar-container {
+                position: fixed; top: 0; left: 0; height: 100%; width: 300px;
+                z-index: 3000; transform: translateX(-100%);
+            }
+            .sidebar-container.active { transform: translateX(0); }
+        }
+
+        .song-card { transition: all 0.4s ease; }
+        .song-card:hover { transform: translateY(-10px); }
+
+        .loading-dots::after {
+            content: '.';
+            animation: dots 1.5s steps(5, end) infinite;
+        }
+        @keyframes dots { 0%, 20% { content: '.'; } 40% { content: '..'; } 60% { content: '...'; } 80%, 100% { content: ''; } }
+
+        /* Custom Scroll */
         ::-webkit-scrollbar { width: 4px; }
-        ::-webkit-scrollbar-thumb { background: rgba(99, 102, 241, 0.4); border-radius: 10px; }
-        .line-clamp-2 { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: rgba(99, 102, 241, 0.3); border-radius: 20px; }
     </style>
 </head>
-<body class="bg-neutral-950">
+<body class="bg-neutral-950 antialiased">
 
-    <!-- YÜKLENİYOR EKRANI -->
-    <div id="loading-screen" class="fixed inset-0 flex items-center justify-center bg-black z-[2000]">
-        <div class="flex flex-col items-center gap-4">
-            <div class="w-12 h-12 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin"></div>
-            <p class="text-indigo-400 font-bold tracking-widest animate-pulse">YOUTIPY</p>
+    <!-- SPLASH LOADING -->
+    <div id="loading-screen" class="fixed inset-0 flex flex-col items-center justify-center bg-black z-[9999]">
+        <div class="relative mb-8">
+            <div class="absolute -inset-8 bg-indigo-500/20 blur-3xl rounded-full animate-pulse"></div>
+            <div class="w-24 h-24 bg-gradient-to-br from-indigo-600 to-purple-600 rounded-[2rem] flex items-center justify-center shadow-2xl rotate-12">
+                <i data-lucide="music" class="text-white w-12 h-12"></i>
+            </div>
         </div>
+        <h1 class="text-4xl font-black tracking-tighter mb-2">YOUTIPY</h1>
+        <p class="text-indigo-400 font-bold tracking-widest text-xs loading-dots uppercase">Sistem Hazırlanıyor</p>
     </div>
 
-    <div class="fixed inset-0 bg-[radial-gradient(circle_at_top_right,_var(--tw-gradient-stops))] from-indigo-900/10 via-black to-neutral-950 -z-10"></div>
-
     <!-- REKLAM KATMANI -->
-    <div id="ad-layer" class="fixed inset-0 hide flex flex-col items-center justify-center p-6 text-center z-[3000] bg-black">
-        <div class="max-w-xl w-full space-y-8">
-            <h2 class="text-3xl font-black italic text-indigo-500 uppercase">Kısa Bir Reklam Arası</h2>
-            <div class="aspect-video w-full glass rounded-[2.5rem] overflow-hidden bg-neutral-900">
-                <video id="ad-video-element" class="w-full h-full object-cover"></video>
+    <div id="ad-layer" class="fixed inset-0 hide flex flex-col items-center justify-center p-6 text-center z-[5000] bg-black">
+        <div class="max-w-2xl w-full space-y-12">
+            <div class="space-y-4">
+                <div class="inline-flex px-4 py-1.5 rounded-full bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 text-[10px] font-black tracking-[0.3em] uppercase">Reklam Alanı</div>
+                <h2 class="text-5xl font-black italic tracking-tighter">KISA BİR MOLA</h2>
+                <p class="text-neutral-400 text-lg">Müzik deneyiminizin devamı için reklamın bitmesini bekleyin.</p>
             </div>
-            <div class="w-full bg-white/5 h-2 rounded-full overflow-hidden">
+            <div class="aspect-video w-full glass rounded-[3.5rem] overflow-hidden bg-neutral-900 border-white/5 relative group">
+                <video id="ad-video-element" class="w-full h-full object-cover"></video>
+                <div class="absolute inset-0 bg-black/20 pointer-events-none"></div>
+                <div class="absolute bottom-8 right-8 bg-black/80 backdrop-blur-xl px-6 py-3 rounded-2xl border border-white/10 flex items-center gap-3">
+                    <div class="w-2 h-2 bg-indigo-500 rounded-full animate-ping"></div>
+                    <span class="text-sm font-bold tracking-tight">Kalan Süre: <span id="ad-countdown" class="text-indigo-400">10</span>s</span>
+                </div>
+            </div>
+            <div class="w-full bg-white/5 h-2.5 rounded-full overflow-hidden">
                 <div id="ad-progress-bar" class="bg-indigo-500 h-full w-0 transition-all duration-1000"></div>
             </div>
-            <p id="ad-timer-text" class="text-xs text-neutral-500 font-bold">Reklamın bitmesine 10s kaldı</p>
+            <button onclick="changeTab('pro')" class="group flex items-center gap-3 mx-auto px-8 py-4 rounded-2xl bg-yellow-500/10 border border-yellow-500/20 text-yellow-500 font-bold hover:bg-yellow-500 hover:text-black transition-all">
+                <i data-lucide="crown" class="w-5 h-5 group-hover:rotate-12 transition-transform"></i>
+                Reklamlardan Kurtul ve Pro Ol
+            </button>
         </div>
     </div>
 
     <!-- AUTH EKRANI -->
-    <div id="auth-screen" class="fixed inset-0 z-[500] hide flex items-center justify-center p-4 bg-black/95">
-        <div class="glass max-w-md w-full p-10 rounded-[3.5rem] shadow-2xl border-white/10">
-            <div class="text-center mb-10">
+    <div id="auth-screen" class="fixed inset-0 z-[4000] hide flex items-center justify-center p-4 bg-black/95 backdrop-blur-2xl">
+        <div class="glass max-w-md w-full p-12 rounded-[4rem] shadow-2xl border-white/10 relative overflow-hidden">
+            <div class="absolute -top-24 -right-24 w-48 h-48 bg-indigo-600/10 blur-[100px]"></div>
+            <div class="text-center mb-12 relative">
+                <div class="w-20 h-20 bg-indigo-600 rounded-3xl flex items-center justify-center mx-auto mb-6 shadow-2xl shadow-indigo-600/30">
+                    <i data-lucide="music" class="text-white w-10 h-10"></i>
+                </div>
                 <h1 class="text-4xl font-black tracking-tighter">YOUTIPY</h1>
-                <p class="text-neutral-400 mt-2 text-sm">Giriş yapın ve müziğin dünyasına adım atın.</p>
+                <p class="text-neutral-400 mt-3 text-sm font-medium">Hayallerindeki dünyayı notalarda bul.</p>
             </div>
-            <form id="auth-form" class="space-y-4">
-                <input type="email" id="email" required class="w-full bg-white/5 border border-white/10 rounded-2xl p-4 outline-none focus:ring-2 focus:ring-indigo-500" placeholder="E-posta">
-                <input type="password" id="password" required class="w-full bg-white/5 border border-white/10 rounded-2xl p-4 outline-none focus:ring-2 focus:ring-indigo-500" placeholder="Şifre">
-                <button type="submit" id="auth-submit-btn" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-black py-4 rounded-2xl shadow-xl">Giriş Yap</button>
+            <form id="auth-form" class="space-y-4 relative">
+                <div class="space-y-1">
+                    <label class="text-[10px] font-black text-neutral-500 uppercase tracking-widest ml-4">E-POSTA ADRESİ</label>
+                    <input type="email" id="email" required class="w-full bg-white/5 border border-white/10 rounded-3xl p-5 outline-none focus:ring-2 focus:ring-indigo-500 transition-all text-white" placeholder="ornek@email.com">
+                </div>
+                <div class="space-y-1">
+                    <label class="text-[10px] font-black text-neutral-500 uppercase tracking-widest ml-4">GÜVENLİ ŞİFRE</label>
+                    <input type="password" id="password" required class="w-full bg-white/5 border border-white/10 rounded-3xl p-5 outline-none focus:ring-2 focus:ring-indigo-500 transition-all text-white" placeholder="••••••••">
+                </div>
+                <button type="submit" id="auth-submit-btn" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-black py-5 rounded-[2rem] shadow-xl shadow-indigo-600/20 transition-all active:scale-95 text-lg">Giriş Yap</button>
             </form>
-            <button id="toggle-auth" class="w-full mt-6 text-neutral-500 text-sm hover:text-indigo-400">Hesabın yok mu? <span class="text-indigo-400 font-bold">Kayıt Ol</span></button>
+            <div class="mt-8 text-center">
+                <button id="toggle-auth" class="text-neutral-500 text-sm font-bold hover:text-indigo-400 transition-colors">Hesabın yok mu? <span class="text-indigo-400 underline decoration-2 underline-offset-4">Kayıt Ol</span></button>
+            </div>
         </div>
     </div>
 
-    <!-- ANA UYGULAMA PANELİ -->
-    <div id="app-screen" class="h-screen flex flex-col hide">
-        <header class="h-20 glass flex items-center justify-between px-6 md:px-10 border-b border-white/5 z-50">
-            <div class="flex items-center gap-3">
-                <button id="mobile-menu-btn" class="lg:hidden p-2 text-neutral-400"><i data-lucide="menu"></i></button>
-                <div class="flex items-center gap-3 cursor-pointer" onclick="changeTab('home')">
-                    <div class="w-10 h-10 bg-indigo-600 rounded-xl flex items-center justify-center shadow-lg"><i data-lucide="music-2" class="text-white w-5 h-5"></i></div>
-                    <span class="text-xl font-black hidden sm:inline">YOUTIPY</span>
+    <!-- ANA APP EKRANI -->
+    <div id="app-screen" class="h-screen flex flex-col hide animate-view">
+        
+        <!-- Header -->
+        <header class="h-24 glass flex items-center justify-between px-6 lg:px-12 border-b border-white/5 z-[200]">
+            <div class="flex items-center gap-5">
+                <button id="mobile-menu-open" class="lg:hidden p-3 rounded-2xl bg-white/5 text-neutral-400"><i data-lucide="menu"></i></button>
+                <div class="flex items-center gap-4 cursor-pointer group" onclick="changeTab('home')">
+                    <div class="w-12 h-12 bg-indigo-600 rounded-2xl flex items-center justify-center shadow-lg group-hover:rotate-6 transition-transform">
+                        <i data-lucide="music-2" class="text-white w-6 h-6"></i>
+                    </div>
+                    <span class="text-2xl font-black tracking-tighter hidden sm:inline">YOUTIPY</span>
                 </div>
             </div>
-            <div class="flex-1 max-w-xl mx-4 md:mx-12 relative group">
-                <input type="text" id="search-input" placeholder="Şarkı, sanatçı veya tür ara..." class="w-full bg-white/5 border border-white/10 rounded-full py-2.5 px-12 outline-none focus:ring-2 focus:ring-indigo-500 text-white">
-                <i data-lucide="search" class="absolute left-4 top-3 text-neutral-500 w-5 h-5"></i>
+
+            <div class="flex-1 max-w-2xl mx-6 lg:mx-20 relative group">
+                <input type="text" id="search-input" placeholder="Şarkı, sanatçı veya ruh hali ara..." 
+                    class="w-full bg-white/5 border border-white/10 rounded-full py-4 px-16 outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white/10 transition-all text-white text-sm font-medium">
+                <i data-lucide="search" class="absolute left-6 top-4.5 text-neutral-500 w-5 h-5 group-focus-within:text-indigo-500 transition-colors"></i>
             </div>
-            <div class="flex items-center gap-4">
-                <div class="flex items-center gap-2 bg-white/5 p-1 pr-4 rounded-full border border-white/10">
-                    <div id="user-initial" class="w-8 h-8 bg-indigo-500 rounded-full flex items-center justify-center font-bold text-xs shadow-lg shadow-indigo-500/20">?</div>
-                    <span id="account-type" class="text-[8px] font-black text-neutral-500 tracking-widest hidden sm:inline">FREE</span>
+
+            <div class="flex items-center gap-6">
+                <button id="theme-toggle" class="p-3 rounded-full hover:bg-white/5 transition-all hidden md:block">
+                    <i data-lucide="sun" id="theme-icon" class="w-6 h-6"></i>
+                </button>
+                <div class="flex items-center gap-4 bg-white/5 p-1.5 pr-6 rounded-full border border-white/10 hover:border-white/20 transition-all cursor-pointer group" onclick="openSettings()">
+                    <div id="user-initial" class="w-10 h-10 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-full flex items-center justify-center font-black text-sm shadow-xl group-hover:scale-105 transition-transform border-2 border-white/10">?</div>
+                    <div class="flex flex-col hidden sm:flex">
+                        <span id="user-email-display" class="text-xs font-black truncate max-w-[120px]">...</span>
+                        <span id="account-type-badge" class="text-[8px] font-black uppercase text-neutral-500 tracking-[0.2em]">Yükleniyor</span>
+                    </div>
+                    <i data-lucide="chevron-down" class="w-4 h-4 text-neutral-500 hidden sm:block"></i>
                 </div>
-                <button onclick="openSettings()" class="p-2 text-neutral-400 hover:text-white transition-colors"><i data-lucide="settings" class="w-5 h-5"></i></button>
             </div>
         </header>
 
-        <div class="flex flex-1 overflow-hidden">
-            <!-- Yan Menü (Sidebar) -->
-            <aside id="sidebar" class="lg:w-72 glass border-r border-white/5 p-8 flex flex-col gap-10 mobile-sidebar lg:relative lg:left-0">
-                <div class="lg:hidden flex justify-between items-center mb-4">
-                    <span class="text-xl font-black italic">YOUTIPY</span>
-                    <button id="close-sidebar-btn" class="p-2 text-neutral-400"><i data-lucide="x"></i></button>
+        <div class="flex flex-1 overflow-hidden relative">
+            <!-- Sidebar -->
+            <aside id="sidebar" class="sidebar-container w-80 glass border-r border-white/5 p-10 flex flex-col gap-12 overflow-y-auto">
+                <div class="lg:hidden flex justify-between items-center mb-6">
+                    <span class="text-2xl font-black italic">YOUTIPY</span>
+                    <button id="mobile-menu-close" class="p-3 bg-white/5 rounded-2xl text-neutral-400"><i data-lucide="x"></i></button>
                 </div>
-                <nav class="space-y-1">
-                    <p class="text-[10px] font-black text-neutral-500 uppercase tracking-widest mb-4 px-2">Kütüphane</p>
-                    <button onclick="changeTab('home')" id="nav-home" class="nav-link active w-full flex items-center gap-4 p-4 rounded-2xl text-sm font-bold transition-all"><i data-lucide="zap" class="w-5 h-5"></i> Keşfet</button>
-                    <button onclick="changeTab('favorites')" id="nav-favorites" class="nav-link w-full flex items-center gap-4 p-4 rounded-2xl text-sm font-bold text-neutral-400 hover:bg-white/5 transition-all"><i data-lucide="heart" class="w-5 h-5"></i> Favoriler</button>
-                    <button onclick="changeTab('history')" id="nav-history" class="nav-link w-full flex items-center gap-4 p-4 rounded-2xl text-sm font-bold text-neutral-400 hover:bg-white/5 transition-all"><i data-lucide="history" class="w-5 h-5"></i> Geçmiş</button>
-                    <button onclick="changeTab('pro')" id="nav-pro" class="nav-link w-full flex items-center justify-between p-4 rounded-2xl text-sm font-bold text-neutral-400 hover:bg-white/5 transition-all"><div class="flex items-center gap-4"><i data-lucide="crown" class="w-5 h-5 text-yellow-500"></i> Pro</div></button>
-                </nav>
-                <div class="flex-1 overflow-hidden flex flex-col">
-                    <div class="flex items-center justify-between px-2 mb-4">
-                        <p class="text-[10px] font-black text-neutral-500 uppercase tracking-widest">Çalma Listelerim</p>
-                        <button onclick="createNewPlaylist()" class="text-indigo-400 hover:text-white transition-colors"><i data-lucide="plus" class="w-4 h-4"></i></button>
+
+                <div class="space-y-8">
+                    <div class="space-y-4">
+                        <p class="text-[10px] font-black text-neutral-500 uppercase tracking-[0.3em] px-4">Kütüphane</p>
+                        <nav class="space-y-2">
+                            <button onclick="changeTab('home')" id="nav-home" class="nav-link active w-full flex items-center gap-5 p-4 rounded-2xl text-sm font-black transition-all">
+                                <i data-lucide="zap" class="w-5 h-5"></i> Keşfet
+                            </button>
+                            <button onclick="changeTab('favorites')" id="nav-favorites" class="nav-link w-full flex items-center gap-5 p-4 rounded-2xl text-sm font-black transition-all text-neutral-400 hover:bg-white/5">
+                                <i data-lucide="heart" class="w-5 h-5"></i> Favoriler
+                            </button>
+                            <button onclick="changeTab('history')" id="nav-history" class="nav-link w-full flex items-center gap-5 p-4 rounded-2xl text-sm font-black transition-all text-neutral-400 hover:bg-white/5">
+                                <i data-lucide="history" class="w-5 h-5"></i> Geçmiş
+                            </button>
+                            <button onclick="changeTab('pro')" id="nav-pro" class="nav-link w-full flex items-center justify-between p-4 rounded-2xl text-sm font-black transition-all text-neutral-400 hover:bg-white/5 group">
+                                <div class="flex items-center gap-5"><i data-lucide="crown" class="w-5 h-5 text-yellow-500 group-hover:animate-bounce"></i> Pro Sürüm</div>
+                            </button>
+                        </nav>
                     </div>
-                    <div id="sidebar-playlists" class="overflow-y-auto space-y-1 pr-2"></div>
+
+                    <div class="space-y-4">
+                        <div class="flex items-center justify-between px-4">
+                            <p class="text-[10px] font-black text-neutral-500 uppercase tracking-[0.3em]">Listelerim</p>
+                            <button onclick="createNewPlaylist()" class="text-indigo-400 hover:text-white transition-colors p-1"><i data-lucide="plus" class="w-4 h-4"></i></button>
+                        </div>
+                        <div id="sidebar-playlists" class="space-y-2 pr-2">
+                            <!-- Playlists -->
+                        </div>
+                    </div>
+                </div>
+
+                <div class="mt-auto space-y-4">
+                    <div id="pro-promo-card" class="p-6 rounded-[2rem] bg-gradient-to-br from-indigo-600/20 to-purple-600/20 border border-white/5 text-center relative overflow-hidden group">
+                        <div class="absolute -top-10 -right-10 w-24 h-24 bg-white/5 blur-3xl rounded-full"></div>
+                        <i data-lucide="star" class="mx-auto text-yellow-500 w-10 h-10 mb-4 animate-pulse"></i>
+                        <p class="text-xs font-black uppercase tracking-widest mb-2">Pro Ayrıcalığı</p>
+                        <p class="text-[10px] text-neutral-400 mb-5 leading-relaxed">Reklamları kaldırın, sınırsız atlama ve HD ses kazanın.</p>
+                        <button onclick="changeTab('pro')" class="w-full bg-white text-black text-[10px] font-black py-3 rounded-xl hover:scale-105 transition-transform">HEMEN İNCELE</button>
+                    </div>
+                    <button onclick="openSettings()" class="w-full flex items-center gap-5 p-4 rounded-2xl text-sm font-black text-neutral-400 hover:bg-white/5 transition-all">
+                        <i data-lucide="settings" class="w-5 h-5"></i> Ayarlar
+                    </button>
                 </div>
             </aside>
 
-            <!-- Ana İçerik Alanı -->
-            <main class="flex-1 overflow-y-auto p-6 md:p-12 pb-44 scroll-smooth">
-                <section id="tab-home" class="space-y-10">
-                    <div class="flex items-end justify-between border-b border-white/5 pb-8">
-                        <div>
-                            <h2 class="text-4xl font-black tracking-tighter">TÜRKİYE TRENDLERİ</h2>
-                            <p class="text-neutral-400 mt-3 text-lg font-medium">Anlık olarak Türkiye'de en çok dinlenen hit parçalar.</p>
+            <!-- Main Scroll Area -->
+            <main class="flex-1 overflow-y-auto p-6 md:p-14 pb-48 scroll-smooth" id="main-scroll">
+                <!-- Home / Trends -->
+                <section id="tab-home" class="space-y-14">
+                    <div class="flex flex-col md:flex-row md:items-end justify-between gap-6 border-b border-white/5 pb-10">
+                        <div class="space-y-4">
+                            <div class="flex items-center gap-3">
+                                <span class="px-3 py-1 rounded-full bg-red-500/10 text-red-500 text-[10px] font-black tracking-widest uppercase border border-red-500/20">Canlı</span>
+                                <h2 class="text-5xl font-black tracking-tighter">TÜRKİYE TRENDLERİ</h2>
+                            </div>
+                            <p class="text-neutral-500 text-lg font-medium">Anlık olarak Türkiye'de en çok ses getiren hit parçalar.</p>
                         </div>
-                        <div id="skip-info" class="glass px-6 py-3 rounded-2xl border border-white/10 text-xs font-bold text-neutral-400 flex items-center gap-3">
-                            Atlama Hakkı: <span id="skip-count-display" class="text-indigo-400 font-black">5</span>/5
+                        <div id="skip-info-ui" class="glass px-8 py-4 rounded-3xl border border-white/10 flex items-center gap-4 shadow-xl">
+                            <div class="w-2 h-2 bg-indigo-500 rounded-full animate-pulse"></div>
+                            <span class="text-xs font-black text-neutral-400 tracking-widest uppercase">Atlama Hakkı: <span id="skip-count-display" class="text-indigo-400 text-sm">5</span>/5</span>
                         </div>
                     </div>
-                    <div id="music-grid" class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 2xl:grid-cols-5 gap-6 md:gap-10"></div>
+                    <div id="music-grid" class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 2xl:grid-cols-6 gap-6 md:gap-10">
+                        <!-- Music Cards -->
+                    </div>
                 </section>
-                <section id="tab-favorites" class="hide space-y-10">
-                    <h2 class="text-4xl font-black tracking-tight">FAVORİLERİN</h2>
-                    <div id="favorites-grid" class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-6 md:gap-10"></div>
+
+                <!-- Favorites -->
+                <section id="tab-favorites" class="hide space-y-12">
+                    <h2 class="text-5xl font-black tracking-tighter">FAVORİLERİN</h2>
+                    <div id="favorites-grid" class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-10"></div>
                 </section>
-                <section id="tab-history" class="hide space-y-10">
-                    <h2 class="text-4xl font-black tracking-tight">SON DİNLEDİKLERİN</h2>
-                    <div id="history-grid" class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-6 md:gap-10"></div>
+
+                <!-- History -->
+                <section id="tab-history" class="hide space-y-12">
+                    <div class="flex items-center justify-between">
+                        <h2 class="text-5xl font-black tracking-tighter">SON DİNLEDİKLERİN</h2>
+                        <button onclick="clearHistory()" class="text-xs font-black text-red-500 hover:underline tracking-widest uppercase">Temizle</button>
+                    </div>
+                    <div id="history-grid" class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-10"></div>
                 </section>
-                <section id="tab-pro" class="hide py-20 text-center space-y-12 max-w-4xl mx-auto">
-                    <h2 class="text-6xl font-black italic text-yellow-500 tracking-tighter">YOUTIPY PRO</h2>
-                    <p class="text-xl text-neutral-400">Reklamsız, sınırsız ve yüksek kaliteli müzik keyfi.</p>
-                    <div id="pro-activation-ui" class="glass p-10 md:p-16 rounded-[4rem] border-2 border-yellow-500/20 shadow-2xl relative overflow-hidden">
-                        <input type="text" id="pro-input-code" placeholder="Aktivasyon Kodu: ProTipy" class="w-full bg-black/50 border border-white/10 rounded-3xl p-5 text-center mb-6 font-bold tracking-widest uppercase outline-none focus:ring-2 focus:ring-yellow-500">
-                        <button onclick="handleProActivation()" class="bg-yellow-500 text-black font-black w-full py-5 rounded-3xl shadow-xl transition-all active:scale-95">AKTİF ET</button>
+
+                <!-- Pro Page -->
+                <section id="tab-pro" class="hide py-16 text-center space-y-20 max-w-5xl mx-auto">
+                    <div class="space-y-8">
+                        <div class="w-32 h-32 bg-gradient-to-br from-yellow-400 via-orange-500 to-red-600 rounded-[3rem] flex items-center justify-center mx-auto shadow-[0_30px_60px_-10px_rgba(234,179,8,0.4)] rotate-12 group-hover:rotate-0 transition-transform duration-500">
+                            <i data-lucide="crown" class="text-black w-16 h-16"></i>
+                        </div>
+                        <h2 class="text-7xl font-black tracking-tighter italic bg-clip-text text-transparent bg-gradient-to-r from-yellow-200 via-yellow-500 to-orange-600">YOUTIPY PRO</h2>
+                        <p class="text-2xl text-neutral-400 font-medium max-w-2xl mx-auto leading-relaxed">Reklamları sonsuza dek susturun, sınırsız geçiş yapın ve kristal netliğinde sesin tadını çıkarın.</p>
+                    </div>
+
+                    <div id="pro-activation-container" class="glass p-12 md:p-20 rounded-[5rem] border-2 border-yellow-500/20 shadow-2xl relative overflow-hidden group">
+                        <div class="absolute -top-32 -left-32 w-80 h-80 bg-yellow-500/5 blur-[120px] group-hover:bg-yellow-500/10 transition-all duration-700"></div>
+                        <h3 class="text-3xl font-black mb-12 tracking-tight uppercase">Premium Aktivasyon</h3>
+                        <div class="flex flex-col sm:flex-row gap-6 max-w-xl mx-auto relative z-10">
+                            <input type="text" id="pro-code-input" placeholder="Kodu Buraya Yazın: ProTipy" 
+                                class="flex-1 bg-black/60 border-2 border-white/5 rounded-[2.5rem] px-10 py-6 outline-none focus:ring-4 focus:ring-yellow-500/20 focus:border-yellow-500/50 text-white font-black tracking-[0.2em] text-center text-xl uppercase transition-all">
+                            <button onclick="handleProActivation()" class="bg-yellow-500 hover:bg-yellow-400 text-black font-black px-16 py-6 rounded-[2.5rem] shadow-[0_20px_40px_-5px_rgba(234,179,8,0.4)] transition-all active:scale-95 text-xl tracking-tighter">AKTİF ET</button>
+                        </div>
                     </div>
                 </section>
             </main>
         </div>
 
         <!-- PLAYER BAR -->
-        <div id="player-bar" class="fixed bottom-0 left-0 right-0 h-32 md:h-28 glass border-t border-white/10 px-6 md:px-12 flex items-center justify-between z-[200]">
-            <div class="flex items-center gap-4 w-1/3">
-                <div class="relative group">
-                    <img id="current-thumb" onclick="openFullscreen()" src="" class="w-14 h-14 md:w-16 md:h-16 rounded-2xl object-cover shadow-2xl cursor-pointer hide border border-white/5 transition-transform hover:scale-105 active:scale-110">
-                </div>
-                <div class="overflow-hidden hidden sm:block">
-                    <h4 id="current-title" class="text-sm font-bold truncate">Şarkı Seçilmedi</h4>
-                    <p id="current-artist" class="text-[10px] text-neutral-500 truncate font-medium">Lütfen bir müzik seçin</p>
-                </div>
-            </div>
-            <div class="flex flex-col items-center gap-4 w-1/3 min-w-[200px]">
-                <div class="flex items-center gap-4 md:gap-8">
-                    <button onclick="toggleLoop()" id="loop-btn" class="text-neutral-500 hover:text-white transition-all"><i data-lucide="repeat"></i></button>
-                    <button onclick="restartSong()" class="text-neutral-400 hidden md:block"><i data-lucide="skip-back" class="w-6 h-6"></i></button>
-                    <button onclick="togglePlay()" id="play-btn" class="w-14 h-14 bg-white text-black rounded-full flex items-center justify-center hover:scale-110 shadow-xl transition-all">
-                        <i data-lucide="play" fill="black" class="ml-1 w-7 h-7"></i>
-                    </button>
-                    <button onclick="handleSkip()" class="text-neutral-400 hover:text-white transition-all"><i data-lucide="skip-forward" class="w-6 h-6"></i></button>
-                    <button onclick="openFullscreen()" class="text-neutral-500 hover:text-white transition-all"><i data-lucide="list-music"></i></button>
-                </div>
-                <div class="w-full flex items-center gap-4">
-                    <span id="current-time" class="text-[10px] text-neutral-500 font-mono w-10">0:00</span>
-                    <div class="flex-1 h-1 bg-white/10 rounded-full relative cursor-pointer" id="seek-bar-area">
-                        <div id="progress-bar-fill" class="absolute h-full bg-indigo-500 rounded-full w-0 transition-all"></div>
+        <div id="player-bar" class="fixed bottom-0 left-0 right-0 h-36 md:h-32 glass border-t border-white/10 px-6 md:px-14 flex items-center justify-between">
+            <!-- Song Info -->
+            <div class="flex items-center gap-5 w-1/4">
+                <div class="relative group cursor-pointer" onclick="openNowPlaying()">
+                    <img id="current-thumb" src="" class="w-16 h-16 md:w-20 md:h-20 rounded-[1.5rem] object-cover shadow-2xl hide border-2 border-white/5 transition-transform group-hover:scale-105 active:scale-110">
+                    <div class="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 rounded-[1.5rem] flex items-center justify-center transition-all">
+                        <i data-lucide="maximize-2" class="w-5 h-5 text-white"></i>
                     </div>
-                    <span id="duration-total" class="text-[10px] text-neutral-500 font-mono w-10 text-right">0:00</span>
+                </div>
+                <div class="overflow-hidden hidden sm:block space-y-1">
+                    <h4 id="current-title" class="text-sm font-black truncate text-white leading-tight">Şarkı Seçilmedi</h4>
+                    <p id="current-artist" class="text-[10px] text-neutral-500 truncate font-black tracking-widest uppercase">Lütfen bir müzik seçin</p>
                 </div>
             </div>
-            <div class="flex items-center justify-end gap-5 w-1/3">
-                <div class="flex items-center gap-3 hidden md:flex">
-                    <button onclick="toggleMute()" id="mute-trigger"><i data-lucide="volume-2" class="w-5 h-5 text-neutral-400"></i></button>
-                    <input type="range" id="volume-control" min="0" max="100" value="70" class="w-24 md:w-32 h-1 bg-white/10 rounded-full appearance-none">
+
+            <!-- Controls -->
+            <div class="flex flex-col items-center gap-5 w-2/4 min-w-[280px]">
+                <div class="flex items-center gap-6 md:gap-12">
+                    <button onclick="toggleLoop()" id="btn-loop" class="text-neutral-500 hover:text-indigo-400 transition-all p-2"><i data-lucide="repeat"></i></button>
+                    <button onclick="player && player.seekTo(0)" class="text-neutral-400 hover:text-white transition-all hidden md:block p-2"><i data-lucide="skip-back" class="w-7 h-7"></i></button>
+                    <button onclick="togglePlayback()" id="btn-play" class="w-16 h-16 bg-white text-black rounded-full flex items-center justify-center hover:scale-110 shadow-[0_15px_40px_-5px_rgba(255,255,255,0.3)] transition-all">
+                        <i data-lucide="play" fill="black" class="ml-1 w-8 h-8"></i>
+                    </button>
+                    <button onclick="handleSkip()" class="text-neutral-400 hover:text-white transition-all p-2"><i data-lucide="skip-forward" class="w-7 h-7"></i></button>
+                    <button onclick="toggleQueueView()" id="btn-queue" class="text-neutral-500 hover:text-indigo-400 transition-all p-2"><i data-lucide="list-music"></i></button>
                 </div>
-                <button onclick="openFullscreen()" class="text-neutral-400 hover:text-white transition-all"><i data-lucide="maximize-2" class="w-5 h-5"></i></button>
+                <div class="w-full flex items-center gap-5 px-4 lg:px-10">
+                    <span id="p-curr" class="text-[10px] text-neutral-500 font-mono w-10">0:00</span>
+                    <div class="flex-1 h-1.5 bg-white/5 rounded-full relative cursor-pointer group" id="p-seek-area">
+                        <div id="p-fill" class="absolute h-full bg-indigo-500 rounded-full w-0 group-hover:bg-indigo-400 transition-all">
+                            <div class="absolute right-0 top-1/2 -translate-y-1/2 w-4 h-4 bg-white rounded-full shadow-xl opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                        </div>
+                    </div>
+                    <span id="p-dur" class="text-[10px] text-neutral-500 font-mono w-10 text-right">0:00</span>
+                </div>
+            </div>
+
+            <!-- Volume & Extra -->
+            <div class="flex items-center justify-end gap-6 w-1/4">
+                <div class="items-center gap-4 hidden lg:flex bg-white/5 px-5 py-3 rounded-2xl border border-white/5">
+                    <button onclick="toggleMute()" id="mute-icon" class="text-neutral-400 hover:text-white transition-colors"><i data-lucide="volume-2" class="w-5 h-5"></i></button>
+                    <input type="range" id="vol-slider" min="0" max="100" value="75" class="w-24 md:w-32 h-1 bg-white/10 rounded-full appearance-none">
+                </div>
+                <button onclick="openNowPlaying()" class="text-neutral-500 hover:text-white transition-all p-2"><i data-lucide="maximize" class="w-6 h-6"></i></button>
             </div>
         </div>
     </div>
 
-    <!-- ŞİMDİ ÇALIYOR & SIRA PANELİ (Fullscreen) -->
-    <div id="now-playing-overlay" class="fixed inset-0 flex flex-col items-center justify-center p-8 md:p-16 z-[150] hide">
-        <button onclick="closeFullscreen()" class="absolute top-10 right-10 text-white/40 hover:text-white transition-all"><i data-lucide="chevron-down" class="w-12 h-12"></i></button>
-        <div class="flex flex-col lg:flex-row w-full max-w-7xl h-full items-center gap-12 lg:gap-24 overflow-y-auto pt-20 lg:pt-0">
-            <div class="w-full lg:w-1/2 flex flex-col items-center">
-                <img id="full-cover-img" src="" class="w-64 md:w-[450px] aspect-square rounded-[3rem] object-cover shadow-[0_50px_100px_-20px_rgba(0,0,0,0.8)] border border-white/10">
-                <div class="mt-12 text-center space-y-4 w-full">
-                    <h2 id="full-song-title" class="text-3xl md:text-5xl font-black leading-tight truncate px-4">Şarkı İsmi</h2>
-                    <p id="full-song-artist" class="text-lg md:text-2xl text-neutral-400 font-medium italic">Sanatçı Adı</p>
-                    <div class="flex gap-6 justify-center mt-10">
-                        <button onclick="toggleFavorite()" id="full-fav-btn" class="p-5 glass rounded-full hover:scale-110 hover:bg-white/10 transition-all"><i data-lucide="heart"></i></button>
-                        <button onclick="togglePlay()" class="p-6 bg-white text-black rounded-full hover:scale-110 shadow-2xl transition-all"><i data-lucide="play" fill="black"></i></button>
-                        <button onclick="restartSong()" class="p-5 glass rounded-full hover:scale-110 hover:bg-white/10 transition-all"><i data-lucide="rotate-ccw"></i></button>
+    <!-- FULLSCREEN NOW PLAYING & QUEUE -->
+    <div id="now-playing-overlay" class="flex flex-col items-center justify-center p-6 md:p-20 hide">
+        <!-- Close Button -->
+        <button onclick="closeNowPlaying()" class="absolute top-12 left-12 p-5 glass rounded-full text-neutral-500 hover:text-white hover:scale-110 transition-all">
+            <i data-lucide="chevron-down" class="w-10 h-10"></i>
+        </button>
+
+        <div class="flex flex-col lg:flex-row w-full max-w-[1600px] h-full items-center gap-16 lg:gap-32 overflow-y-auto lg:overflow-visible pt-32 lg:pt-0">
+            <!-- Left: Artwork & Main Info -->
+            <div class="w-full lg:w-1/2 flex flex-col items-center text-center lg:text-left lg:items-start animate-view">
+                <div class="relative group mb-16">
+                    <div class="absolute -inset-10 bg-indigo-500/10 blur-[100px] rounded-full group-hover:bg-indigo-500/20 transition-all duration-1000"></div>
+                    <img id="full-cover" src="" class="w-[300px] md:w-[600px] aspect-square rounded-[4.5rem] object-cover shadow-[0_80px_150px_-20px_rgba(0,0,0,0.9)] border border-white/10 relative z-10 transition-transform duration-700 hover:scale-[1.02]">
+                </div>
+                <div class="space-y-6 w-full relative z-10">
+                    <div class="flex flex-col gap-2">
+                        <h2 id="full-title" class="text-4xl md:text-7xl font-black tracking-tight leading-[1.1] line-clamp-2">Şarkı İsmi</h2>
+                        <p id="full-artist" class="text-2xl md:text-3xl text-neutral-400 font-bold tracking-tight italic uppercase">Sanatçı Adı</p>
+                    </div>
+                    <div class="flex flex-wrap gap-6 items-center justify-center lg:justify-start pt-6 border-t border-white/5">
+                        <button onclick="toggleFavorite()" id="full-fav-btn" class="p-6 glass rounded-full hover:scale-110 hover:bg-white/10 transition-all"><i data-lucide="heart"></i></button>
+                        <button onclick="togglePlayback()" class="p-8 bg-white text-black rounded-full hover:scale-110 shadow-2xl transition-all"><i data-lucide="play" fill="black" class="w-10 h-10"></i></button>
+                        <button onclick="player && player.seekTo(0)" class="p-6 glass rounded-full hover:scale-110 hover:bg-white/10 transition-all"><i data-lucide="rotate-ccw"></i></button>
+                        <button onclick="toggleMute()" class="p-6 glass rounded-full hover:scale-110 hover:bg-white/10 transition-all"><i data-lucide="volume-x"></i></button>
                     </div>
                 </div>
             </div>
-            <div class="w-full lg:w-1/2 flex flex-col h-[50vh] lg:h-[70vh]">
-                <div class="flex justify-between items-center mb-8 border-b border-white/5 pb-4">
-                    <h3 class="text-xs font-black text-neutral-500 uppercase tracking-widest px-2">Sıradaki Parçalar</h3>
-                    <span id="queue-count" class="text-[10px] bg-indigo-500 px-3 py-1 rounded-full font-black">0</span>
+
+            <!-- Right: Queue & Lyrics -->
+            <div class="w-full lg:w-1/2 flex flex-col h-[60vh] lg:h-[80vh] animate-view" style="animation-delay: 0.1s">
+                <div class="flex items-center justify-between mb-10 border-b border-white/10 pb-6">
+                    <div class="flex items-center gap-4">
+                        <h3 class="text-sm font-black text-neutral-500 uppercase tracking-[0.4em]">Sıradaki Parçalar</h3>
+                        <span id="q-badge" class="px-3 py-1 bg-indigo-500 rounded-full text-[10px] font-black shadow-lg shadow-indigo-500/20">0</span>
+                    </div>
+                    <div class="flex gap-2">
+                        <button onclick="shuffleQueue()" class="p-2 text-neutral-500 hover:text-white transition-colors"><i data-lucide="shuffle" class="w-4 h-4"></i></button>
+                        <button onclick="clearQueue()" class="p-2 text-neutral-500 hover:text-red-500 transition-colors"><i data-lucide="trash-2" class="w-4 h-4"></i></button>
+                    </div>
                 </div>
-                <div id="queue-list" class="flex-1 overflow-y-auto space-y-4 pr-4">
-                    <!-- Sıradaki müzikler -->
+                
+                <div id="q-list" class="flex-1 overflow-y-auto space-y-4 pr-6 scroll-smooth">
+                    <!-- Dinamik Queue Elemanları -->
+                </div>
+
+                <div class="mt-12 p-8 glass rounded-[3rem] border-white/5 border-2 text-center group cursor-help">
+                    <p class="text-neutral-500 text-xs font-black uppercase tracking-widest mb-4 group-hover:text-indigo-400 transition-colors">Sözler</p>
+                    <p class="text-2xl font-bold leading-relaxed text-neutral-300">Bu şarkı için sözler henüz yüklenmedi. Youtipy Pro ile özel içerikleri yakala.</p>
                 </div>
             </div>
         </div>
     </div>
 
     <!-- SETTINGS MODAL -->
-    <div id="settings-modal" class="fixed inset-0 z-[600] hide flex items-center justify-center p-6 bg-black/90 backdrop-blur-3xl">
+    <div id="settings-modal" class="fixed inset-0 z-[6000] hide flex items-center justify-center p-4 bg-black/90 backdrop-blur-3xl">
         <div class="absolute inset-0" onclick="closeSettings()"></div>
-        <div class="relative glass max-w-xl w-full p-12 rounded-[4rem] border border-white/10 shadow-[0_0_100px_rgba(0,0,0,0.5)]">
-            <h3 class="text-3xl font-black mb-10 tracking-tighter">Ayarlar</h3>
-            <div class="space-y-6">
-                <div class="flex items-center justify-between p-5 bg-white/5 rounded-3xl border border-white/5">
+        <div class="relative glass max-w-2xl w-full p-12 rounded-[4rem] border border-white/10 shadow-[0_0_100px_rgba(0,0,0,0.6)] animate-view">
+            <h3 class="text-4xl font-black mb-12 tracking-tighter italic underline decoration-indigo-500 decoration-8 underline-offset-[12px]">AYARLAR</h3>
+            
+            <div class="space-y-8">
+                <div class="flex items-center justify-between p-6 bg-white/[0.03] rounded-3xl border border-white/5 hover:border-white/10 transition-all group">
                     <div class="flex flex-col">
-                        <span class="font-bold">Hesap Oturumu</span>
-                        <span class="text-xs text-neutral-500">Mevcut hesabınızdan güvenle çıkın.</span>
+                        <span class="font-black text-lg tracking-tight">Hesap Oturumu</span>
+                        <span class="text-xs text-neutral-500 font-bold uppercase tracking-widest mt-1">Giriş Yapılan: <b class="text-indigo-400" id="sett-email">...</b></span>
                     </div>
-                    <button onclick="handleLogout()" class="bg-red-500/10 text-red-500 px-6 py-3 rounded-2xl font-black hover:bg-red-500 hover:text-white transition-all">ÇIKIŞ YAP</button>
+                    <button onclick="handleLogout()" class="bg-red-500/10 text-red-500 px-8 py-3.5 rounded-2xl font-black hover:bg-red-500 hover:text-white transition-all text-sm tracking-tighter">ÇIKIŞ YAP</button>
                 </div>
-                <div class="flex items-center justify-between p-5 bg-white/5 rounded-3xl border border-white/5">
+
+                <div class="flex items-center justify-between p-6 bg-white/[0.03] rounded-3xl border border-white/5">
                     <div class="flex flex-col">
-                        <span class="font-bold">Dil / Language</span>
-                        <span class="text-xs text-neutral-500">Uygulama dili.</span>
+                        <span class="font-black text-lg tracking-tight">Ses Kalitesi</span>
+                        <span class="text-xs text-neutral-500 font-bold uppercase tracking-widest mt-1">HD Akış Özelliği</span>
                     </div>
-                    <span class="text-indigo-400 font-black tracking-widest uppercase">Türkçe</span>
+                    <span class="text-[10px] font-black text-yellow-500 bg-yellow-500/10 px-4 py-1.5 rounded-full border border-yellow-500/20">PRO GEREKLİ</span>
+                </div>
+
+                <div class="flex items-center justify-between p-6 bg-white/[0.03] rounded-3xl border border-white/5">
+                    <div class="flex flex-col">
+                        <span class="font-black text-lg tracking-tight">Gizlilik</span>
+                        <span class="text-xs text-neutral-500 font-bold tracking-widest mt-1 uppercase">Dinleme Aktivitesi</span>
+                    </div>
+                    <input type="checkbox" checked class="w-12 h-6 bg-neutral-800 rounded-full appearance-none checked:bg-indigo-500 transition-all cursor-pointer">
                 </div>
             </div>
-            <button onclick="closeSettings()" class="w-full bg-white text-black font-black py-5 rounded-[2.5rem] mt-12 shadow-2xl transition-transform active:scale-95 uppercase tracking-widest">Kapat</button>
+            
+            <button onclick="closeSettings()" class="w-full bg-white text-black font-black py-6 rounded-[2.5rem] mt-12 shadow-2xl transition-all active:scale-95 text-xl uppercase tracking-[0.2em]">Pencereyi Kapat</button>
         </div>
     </div>
 
     <!-- KUTLAMA MODALI -->
-    <div id="celebration-modal" class="fixed inset-0 z-[4000] hide flex items-center justify-center p-6 bg-black/95 backdrop-blur-2xl">
-        <div class="glass border-4 border-yellow-500/30 p-20 rounded-[5rem] text-center space-y-8 shadow-[0_0_80px_rgba(234,179,8,0.3)]">
-            <div class="w-24 h-24 bg-yellow-500 rounded-full flex items-center justify-center mx-auto shadow-2xl shadow-yellow-500/50">
-                <i data-lucide="crown" class="text-black w-12 h-12"></i>
+    <div id="celebration-modal" class="fixed inset-0 z-[9000] hide flex items-center justify-center p-4 bg-black/95 backdrop-blur-3xl">
+        <div class="glass border-4 border-yellow-500/40 p-20 rounded-[5rem] text-center space-y-10 shadow-[0_0_120px_rgba(234,179,8,0.4)] max-w-2xl animate-view">
+            <div class="w-32 h-32 bg-yellow-500 rounded-full flex items-center justify-center mx-auto shadow-[0_0_60px_rgba(234,179,8,0.6)]">
+                <i data-lucide="crown" class="text-black w-16 h-16"></i>
             </div>
-            <h2 class="text-6xl font-black italic text-yellow-500 tracking-tighter uppercase">Harika!</h2>
-            <p class="text-xl text-neutral-300">Tüm sınırlar kalktı. Youtipy PRO dünyasına hoş geldin!</p>
-            <button onclick="closeCelebration()" class="bg-white text-black font-black px-16 py-6 rounded-3xl text-xl uppercase tracking-widest transition-all hover:scale-105">Başlayalım</button>
+            <div>
+                <h2 class="text-7xl font-black italic text-yellow-500 tracking-tighter uppercase mb-4">İNANILMAZ!</h2>
+                <p class="text-2xl text-neutral-200 leading-relaxed font-bold">Artık bir Youtipy Premium üyesisin. Tüm sınırlar bugün senin için kalktı!</p>
+            </div>
+            <button onclick="closeCelebration()" class="bg-white text-black font-black px-20 py-7 rounded-[2.5rem] text-2xl uppercase tracking-widest transition-all hover:scale-105 active:scale-95 shadow-2xl">Haydi Başlayalım!</button>
         </div>
     </div>
 
-    <!-- Hidden YT Player -->
+    <!-- YT Container -->
     <div id="yt-player-container"></div>
 
     <script>
+        // --- CORE DATA ---
         const YT_API_KEY = "AIzaSyAx4sh2SFKsXVhemr_cVlGpWpfAPaF6IeA";
         const SB_URL = "https://eygvzptaynyysagvgwyh.supabase.co";
         const SB_KEY = "sb_publishable_JixS3C4jQ2Znrgcr3-IZPg_1MfpvdXW";
@@ -265,324 +482,425 @@
 
         const supabaseClient = window.supabase.createClient(SB_URL, SB_KEY);
         
+        // --- GLOBAL STATE ---
         let player, currentUser = null, isPro = false, isPlaying = false, currentSong = null;
         let skipCount = 0, adSeconds = 0, isAdActive = false, progressInterval;
-        let queue = [], isLooping = false;
+        let queue = [], isLooping = false, history = [];
 
+        // --- YOUTUBE API ---
         function onYouTubeIframeAPIReady() {
             player = new YT.Player('yt-player-container', {
                 height: '1', width: '1', videoId: '',
-                playerVars: { 'autoplay': 0, 'controls': 0, 'showinfo': 0, 'rel': 0, 'modestbranding': 1, 'disablekb': 1 },
-                events: { 'onStateChange': (e) => {
-                    if (e.data == YT.PlayerState.PLAYING) { isPlaying = true; startTracker(); } 
-                    else if (e.data == YT.PlayerState.ENDED) { if (isLooping) restartSong(); else handleSkip(); } 
-                    else { isPlaying = false; stopTracker(); }
-                    updatePlayBtn();
-                }}
+                playerVars: { 
+                    'autoplay': 0, 'controls': 0, 'showinfo': 0, 'rel': 0, 
+                    'modestbranding': 1, 'disablekb': 1, 'origin': window.location.origin 
+                },
+                events: { 
+                    'onStateChange': (e) => {
+                        if (e.data == YT.PlayerState.PLAYING) { isPlaying = true; startTracker(); } 
+                        else if (e.data == YT.PlayerState.ENDED) { 
+                            if (isLooping) player.seekTo(0); else handleSkip(); 
+                        } 
+                        else { isPlaying = false; stopTracker(); }
+                        updatePlayBtnUI();
+                    },
+                    'onReady': () => console.log("YT Ready")
+                }
             });
         }
 
+        // --- INIT ---
         window.addEventListener('DOMContentLoaded', () => { 
             lucide.createIcons(); 
             checkAuthSession();
-            setupBasicEvents();
-            setInterval(checkAdTrigger, 1000);
+            setupEventListeners();
+            setInterval(checkAdClock, 1000);
         });
 
-        function setupBasicEvents() {
-            const safeClick = (id, fn) => { const el = document.getElementById(id); if(el) el.onclick = fn; };
-            safeClick('mobile-menu-btn', () => document.getElementById('sidebar').classList.add('active'));
-            safeClick('close-sidebar-btn', () => document.getElementById('sidebar').classList.remove('active'));
-            safeClick('toggle-auth', toggleAuthUI);
+        function setupEventListeners() {
+            const e = (id, fn) => { const el = document.getElementById(id); if(el) el.onclick = fn; };
             
-            const authForm = document.getElementById('auth-form'); if(authForm) authForm.onsubmit = handleAuth;
-            const seekBar = document.getElementById('seek-bar-area'); if(seekBar) seekBar.onclick = handleSeekBar;
-            const volumeInput = document.getElementById('volume-control'); if(volumeInput) volumeInput.oninput = (e) => player && player.setVolume(e.target.value);
-            const searchInput = document.getElementById('search-input'); if(searchInput) searchInput.onkeypress = (e) => { if(e.key === 'Enter') searchSongs(e.target.value); };
+            e('mobile-menu-open', () => document.getElementById('sidebar').classList.add('active'));
+            e('mobile-menu-close', () => document.getElementById('sidebar').classList.remove('active'));
+            e('toggle-auth', toggleAuthMode);
+            e('p-seek-area', handleSeek);
+            
+            const auth = document.getElementById('auth-form'); if(auth) auth.onsubmit = handleAuthSubmit;
+            const vol = document.getElementById('vol-slider'); if(vol) vol.oninput = (ev) => player && player.setVolume(ev.target.value);
+            const search = document.getElementById('search-input'); if(search) search.onkeypress = (ev) => { if(ev.key === 'Enter') performSearch(ev.target.value); };
+            
+            e('theme-toggle', () => { document.documentElement.classList.toggle('light'); lucide.createIcons(); });
         }
 
+        // --- AUTH & SESSION ---
         async function checkAuthSession() {
-            const { data: { session } } = await supabaseClient.auth.getSession();
-            if (session) handleLoginSuccess(session.user);
-            else { 
-                document.getElementById('loading-screen').classList.add('hide'); 
-                document.getElementById('auth-screen').classList.remove('hide'); 
+            try {
+                const { data: { session } } = await supabaseClient.auth.getSession();
+                if (session) {
+                    handleLoginSuccess(session.user);
+                } else {
+                    document.getElementById('loading-screen').classList.add('hide');
+                    document.getElementById('auth-screen').classList.remove('hide');
+                }
+            } catch (err) {
+                console.error("Auth Fail", err);
             }
         }
 
-        async function handleAuth(e) {
+        async function handleAuthSubmit(e) {
             e.preventDefault();
             const email = document.getElementById('email').value, pass = document.getElementById('password').value;
             const isLogin = document.getElementById('auth-submit-btn').innerText === "Giriş Yap";
+            
             try {
                 const { data, error } = isLogin 
                     ? await supabaseClient.auth.signInWithPassword({ email, password: pass }) 
                     : await supabaseClient.auth.signUp({ email, password: pass });
+                
                 if (error) throw error;
                 handleLoginSuccess(data.user);
-            } catch (err) { alert(err.message); }
+            } catch (err) {
+                alert("Hata: " + err.message);
+            }
         }
 
-        function toggleAuthUI() {
-            const btn = document.getElementById('auth-submit-btn'), toggle = document.getElementById('toggle-auth');
-            const isLogin = btn.innerText === "Giriş Yap";
-            btn.innerText = isLogin ? "Kayıt Ol" : "Giriş Yap";
-            toggle.innerHTML = isLogin ? "Hesabın var mı? <span class='text-indigo-400 font-bold'>Giriş Yap</span>" : "Hesabın yok mu? <span class='text-indigo-400 font-bold'>Kayıt Ol</span>";
+        function toggleAuthMode() {
+            const btn = document.getElementById('auth-submit-btn'), t = document.getElementById('toggle-auth');
+            const isL = btn.innerText === "Giriş Yap";
+            btn.innerText = isL ? "Kayıt Ol" : "Giriş Yap";
+            t.innerHTML = isL ? "Hesabın var mı? <span class='text-indigo-400 font-black'>Giriş Yap</span>" : "Hesabın yok mu? <span class='text-indigo-400 font-black'>Kayıt Ol</span>";
         }
 
-        async function handleLogout() { await supabaseClient.auth.signOut(); window.location.reload(); }
+        async function handleLogout() {
+            await supabaseClient.auth.signOut();
+            window.location.reload();
+        }
 
         function handleLoginSuccess(user) {
             currentUser = user;
             document.getElementById('loading-screen').classList.add('hide');
             document.getElementById('auth-screen').classList.add('hide');
             document.getElementById('app-screen').classList.remove('hide');
-            document.getElementById('user-email').innerText = user.email.split('@')[0];
+            
+            const emailShort = user.email.split('@')[0];
+            document.getElementById('user-email-display').innerText = emailShort;
+            document.getElementById('sett-email').innerText = user.email;
             document.getElementById('user-initial').innerText = user.email[0].toUpperCase();
-            checkProStatus(user.id);
-            loadTurkeyTrends();
-            syncPlaylists();
-            setTimeout(() => lucide.createIcons(), 200);
+            
+            fetchProStatus(user.id);
+            syncLibrary();
+            loadTrends();
+            setTimeout(() => lucide.createIcons(), 300);
         }
 
-        async function checkProStatus(id) {
+        // --- PRO & ADS ---
+        async function fetchProStatus(id) {
             const { data } = await supabaseClient.from('profiles').select('is_pro').eq('id', id).single();
-            if (data?.is_pro) updateProUI(true);
+            if (data?.is_pro) applyProUI(true);
+            else {
+                document.getElementById('account-type-badge').innerText = "ÜCRETSİZ";
+                document.getElementById('account-type-badge').className = "text-[8px] font-black uppercase text-neutral-500 tracking-[0.2em]";
+            }
         }
 
-        function updateProUI(status) {
+        function applyProUI(status) {
             isPro = status;
-            document.getElementById('account-type').innerText = status ? "PRO" : "ÜCRETSİZ";
+            const badge = document.getElementById('account-type-badge');
+            if(badge) {
+                badge.innerText = "PREMIUM";
+                badge.className = "text-[8px] font-black uppercase text-yellow-500 tracking-[0.2em]";
+            }
             if (status) {
-                const navPro = document.getElementById('nav-pro'); if(navPro) navPro.classList.add('hide');
-                const proUI = document.getElementById('pro-activation-ui'); 
-                if(proUI) proUI.innerHTML = "<div class='text-green-500 font-black text-2xl uppercase italic animate-view'><i data-lucide='check-circle' class='w-12 h-12 mx-auto mb-4'></i> Pro Sürüm Aktif</div>";
+                const n = document.getElementById('nav-pro'); if(n) n.classList.add('hide');
+                const s = document.getElementById('skip-info-ui'); if(s) s.classList.add('hide');
+                const p = document.getElementById('pro-activation-container');
+                const promo = document.getElementById('pro-promo-card'); if(promo) promo.classList.add('hide');
+                if(p) p.innerHTML = "<div class='flex flex-col items-center gap-6 py-10'><i data-lucide='shield-check' class='text-green-500 w-24 h-24'></i><h3 class='text-green-500 font-black text-4xl italic'>YOUTIPY PRO AKTİF</h3><p class='text-neutral-500 font-bold'>Sınırsız müziğin tadını çıkarıyorsunuz.</p></div>";
                 lucide.createIcons();
             }
         }
 
         async function handleProActivation() {
-            if (document.getElementById('pro-input-code').value === PRO_CODE) {
-                await supabaseClient.from('profiles').upsert({ id: currentUser.id, is_pro: true });
-                updateProUI(true); triggerCelebration();
-            } else alert("Geçersiz Kod!");
+            if (document.getElementById('pro-code-input').value === PRO_CODE) {
+                await supabaseClient.from('profiles').upsert({ id: currentUser.id, is_pro: true, updated_at: new Date() });
+                applyProUI(true);
+                showCelebration();
+            } else alert("Geçersiz Kod! Lütfen kontrol edin.");
         }
 
-        function checkAdTrigger() {
+        function checkAdClock() {
             if (!isPro && isPlaying && !isAdActive) {
-                adSeconds++; if (adSeconds >= 30) startAd();
+                adSeconds++;
+                if (adSeconds >= 30) runAd();
             }
         }
 
-        function startAd() {
+        function runAd() {
+            if (isAdActive) return;
             isAdActive = true; adSeconds = 0; player && player.pauseVideo();
-            const layer = document.getElementById('ad-layer'), video = document.getElementById('ad-video-element');
+            const layer = document.getElementById('ad-layer'), vid = document.getElementById('ad-video-element');
             layer.classList.remove('hide');
-            const adNum = Math.random() > 0.5 ? 1 : 2;
-            video.src = `https://${SB_URL.split('//')[1]}/storage/v1/object/public/ad/ad${adNum}.mp4`;
-            video.play().catch(()=>{});
-            let c = 10;
-            const it = setInterval(() => {
-                c--; document.getElementById('ad-countdown').innerText = c + 's';
-                document.getElementById('ad-progress-bar').style.width = (10-c)*10+'%';
-                if (c <= 0) { clearInterval(it); layer.classList.add('hide'); isAdActive = false; player && player.playVideo(); }
+            
+            const num = Math.random() > 0.5 ? 1 : 2;
+            // Not: Bucket URL formatı: SB_URL/storage/v1/object/public/ad/ad1.mp4
+            vid.src = `https://${SB_URL.split('//')[1]}/storage/v1/object/public/ad/ad${num}.mp4`;
+            vid.play().catch(e => console.warn("Video reklam yüklenemedi, bekleme simülasyonu."));
+
+            let counter = 10;
+            const timer = setInterval(() => {
+                counter--;
+                const cd = document.getElementById('ad-countdown'), pb = document.getElementById('ad-progress-bar');
+                if(cd) cd.innerText = counter;
+                if(pb) pb.style.width = ((10 - counter) * 10) + '%';
+                if (counter <= 0) {
+                    clearInterval(timer);
+                    layer.classList.add('hide');
+                    isAdActive = false;
+                    player && player.playVideo();
+                }
             }, 1000);
         }
 
-        async function loadTurkeyTrends() {
-            const res = await fetch(`https://www.googleapis.com/youtube/v3/search?part=snippet&maxResults=20&q=TrendingMusicTurkey2024&type=video&key=${YT_API_KEY}`);
-            const data = await res.json(); renderGrid(data.items, 'music-grid');
+        // --- TRENDS & SEARCH ---
+        async function loadTrends() {
+            const res = await fetch(`https://www.googleapis.com/youtube/v3/search?part=snippet&maxResults=18&q=TrendingMusicTurkey2024&type=video&key=${YT_API_KEY}`);
+            const data = await res.json();
+            renderMusic(data.items, 'music-grid');
         }
 
-        function renderGrid(songs, targetId) {
+        async function performSearch(q) {
+            if(!q) return;
+            const res = await fetch(`https://www.googleapis.com/youtube/v3/search?part=snippet&maxResults=24&q=${encodeURIComponent(q)}&type=video&key=${YT_API_KEY}`);
+            const data = await res.json();
+            changeTab('home');
+            document.querySelector('#tab-home h2').innerText = `"${q}" İÇİN SONUÇLAR`;
+            renderMusic(data.items, 'music-grid');
+            document.getElementById('main-scroll').scrollTo(0,0);
+        }
+
+        function renderMusic(songs, targetId) {
             const grid = document.getElementById(targetId);
             if(!grid) return;
             grid.innerHTML = songs.map(s => `
-                <div class="glass p-3 md:p-5 rounded-[2rem] md:rounded-[2.5rem] cursor-pointer hover:translate-y-[-5px] transition-all group" onclick="initPlay('${s.id.videoId}','${s.snippet.title.replace(/'/g,"")}','${s.snippet.thumbnails.high.url}','${s.snippet.channelTitle}')">
-                    <div class="relative overflow-hidden rounded-[1.5rem] md:rounded-[2rem] mb-4 aspect-square">
-                        <img src="${s.snippet.thumbnails.high.url}" class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700">
-                        <div class="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-all">
-                            <div class="w-12 h-12 bg-indigo-600 rounded-full flex items-center justify-center shadow-xl"><i data-lucide="play" fill="white" class="ml-1"></i></div>
+                <div class="song-card glass p-4 md:p-6 rounded-[2.5rem] cursor-pointer group relative" onclick="playSong('${s.id.videoId}','${s.snippet.title.replace(/'/g,"")}','${s.snippet.thumbnails.high.url}','${s.snippet.channelTitle}')">
+                    <div class="relative overflow-hidden rounded-[2rem] aspect-square mb-5 shadow-2xl">
+                        <img src="${s.snippet.thumbnails.high.url}" class="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110">
+                        <div class="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-all backdrop-blur-[2px]">
+                            <div class="w-14 h-14 bg-indigo-600 rounded-full flex items-center justify-center shadow-2xl scale-75 group-hover:scale-100 transition-all border-2 border-white/20">
+                                <i data-lucide="play" fill="white" class="ml-1"></i>
+                            </div>
                         </div>
                     </div>
-                    <h4 class="text-xs md:text-sm font-bold truncate leading-tight">${s.snippet.title}</h4>
-                    <p class="text-[9px] md:text-[10px] text-neutral-500 uppercase mt-2 truncate font-black tracking-widest">${s.snippet.channelTitle}</p>
+                    <h4 class="text-sm font-black truncate leading-tight mb-1">${s.snippet.title}</h4>
+                    <p class="text-[9px] text-neutral-500 uppercase tracking-widest font-black line-clamp-1">${s.snippet.channelTitle}</p>
                 </div>`).join('');
             lucide.createIcons();
         }
 
-        function initPlay(id, title, thumb, artist) {
+        // --- PLAYER CORE ---
+        async function playSong(id, title, thumb, artist) {
             if (isAdActive) return;
             currentSong = { id, title, thumb, artist };
+            
+            // Tab Title & UI
             document.title = `Youtipy - ${title}`;
             document.getElementById('player-bar').classList.add('active');
             const mt = document.getElementById('current-thumb'); mt.src = thumb; mt.classList.remove('hide');
             document.getElementById('current-title').innerText = title;
             document.getElementById('current-artist').innerText = artist;
+            
             player && player.loadVideoById(id);
-            syncFavIcon();
-            saveHistory(id, title, thumb, artist);
-            fetchRelated(id);
+            syncFavUI();
+            logHistory(id, title, thumb, artist);
+            fetchRelatedSongs(id);
         }
 
-        async function fetchRelated(videoId) {
-            const res = await fetch(`https://www.googleapis.com/youtube/v3/search?part=snippet&maxResults=10&relatedToVideoId=${videoId}&type=video&key=${YT_API_KEY}`);
+        async function fetchRelatedSongs(id) {
+            const res = await fetch(`https://www.googleapis.com/youtube/v3/search?part=snippet&maxResults=10&relatedToVideoId=${id}&type=video&key=${YT_API_KEY}`);
             const data = await res.json();
-            queue = data.items.map(s => ({ id: s.id.videoId, title: s.snippet.title, thumb: s.snippet.thumbnails.default.url, artist: s.snippet.channelTitle }));
-            renderQueue();
+            if(data.items) {
+                queue = data.items.map(s => ({
+                    id: s.id.videoId, title: s.snippet.title, thumb: s.snippet.thumbnails.default.url, artist: s.snippet.channelTitle
+                }));
+                renderQueueUI();
+            }
         }
 
-        function renderQueue() {
-            const qList = document.getElementById('queue-list');
-            document.getElementById('queue-count').innerText = queue.length;
-            qList.innerHTML = queue.map((s, i) => `
-                <div class="flex items-center gap-5 p-4 bg-white/5 rounded-[2rem] group hover:bg-white/10 transition-all">
-                    <img src="${s.thumb}" class="w-14 h-14 rounded-2xl object-cover shadow-lg">
+        function renderQueueUI() {
+            const list = document.getElementById('q-list'), badge = document.getElementById('q-badge');
+            if(!list) return;
+            badge.innerText = queue.length;
+            list.innerHTML = queue.map((s, i) => `
+                <div class="flex items-center gap-6 p-4 bg-white/[0.02] rounded-[2rem] border border-white/5 group hover:bg-white/[0.05] transition-all">
+                    <img src="${s.thumb}" class="w-14 h-14 rounded-2xl object-cover shadow-lg border border-white/10">
                     <div class="flex-1 overflow-hidden">
-                        <p class="text-sm font-bold truncate leading-tight">${s.title}</p>
+                        <p class="text-sm font-black truncate leading-tight">${s.title}</p>
                         <p class="text-[10px] text-neutral-500 mt-1 uppercase font-black tracking-widest">${s.artist}</p>
                     </div>
                     <div class="flex gap-2">
-                        <button onclick="playFromQueue(${i})" class="w-10 h-10 bg-indigo-600/20 text-indigo-400 rounded-full flex items-center justify-center hover:bg-indigo-600 hover:text-white transition-all"><i data-lucide="play" class="w-4 h-4 ml-1"></i></button>
+                        <button onclick="playFromQueue(${i})" class="w-10 h-10 bg-indigo-600/20 text-indigo-400 rounded-full flex items-center justify-center hover:bg-indigo-600 hover:text-white transition-all"><i data-lucide="play" class="w-4 h-4 ml-0.5"></i></button>
                         <button onclick="removeFromQueue(${i})" class="w-10 h-10 bg-white/5 text-neutral-500 rounded-full flex items-center justify-center hover:text-red-500 transition-all"><i data-lucide="trash-2" class="w-4 h-4"></i></button>
                     </div>
                 </div>`).join('');
             lucide.createIcons();
         }
 
-        window.removeFromQueue = (i) => { queue.splice(i, 1); renderQueue(); };
-        window.playFromQueue = (i) => { const s = queue.splice(i, 1)[0]; initPlay(s.id, s.title, s.thumb, s.artist); };
+        window.playFromQueue = (i) => {
+            const s = queue.splice(i, 1)[0];
+            playSong(s.id, s.title, s.thumb, s.artist);
+        };
+        window.removeFromQueue = (i) => { queue.splice(i, 1); renderQueueUI(); };
+        window.shuffleQueue = () => { queue.sort(() => Math.random() - 0.5); renderQueueUI(); };
+        window.clearQueue = () => { queue = []; renderQueueUI(); };
 
         function handleSkip() {
             if (queue.length > 0) playFromQueue(0);
-            else if (!isPro) { skipCount++; updateSkipCountDisplay(); if (skipCount >= 5) { skipCount=0; startAd(); } }
+            else {
+                if (!isPro) { 
+                    skipCount++; updateSkipUI(); 
+                    if (skipCount >= 5) { skipCount = 0; updateSkipUI(); runAd(); return; }
+                }
+                loadTrends(); // Fallback trends
+            }
         }
 
-        function updateSkipCountDisplay() { const el = document.getElementById('skip-count-display'); if(el) el.innerText = 5 - skipCount; }
-
-        async function saveHistory(id, title, thumb, artist) {
-            if (!currentUser) return;
-            try { await supabaseClient.from('history').insert({ user_id: currentUser.id, video_id: id, title, thumb, artist }); } catch(e){}
+        function updateSkipUI() {
+            const el = document.getElementById('skip-count-display');
+            if(el) el.innerText = 5 - skipCount;
         }
 
-        function handleSeekBar(e) {
-            const rect = e.currentTarget.getBoundingClientRect();
-            const p = (e.clientX - rect.left) / rect.width;
-            player && player.seekTo(p * player.getDuration());
+        function handleSeek(e) {
+            if(!player || !player.getDuration) return;
+            const r = e.currentTarget.getBoundingClientRect();
+            const p = (e.clientX - r.left) / r.width;
+            player.seekTo(p * player.getDuration());
         }
 
         function startTracker() {
             progressInterval = setInterval(() => {
-                const now = player.getCurrentTime(), dur = player.getDuration();
-                if (dur > 0) {
-                    const fill = document.getElementById('progress-bar-fill');
-                    if(fill) fill.style.width = (now/dur)*100+'%';
-                    const ct = document.getElementById('current-time'), dt = document.getElementById('duration-total');
-                    if(ct) ct.innerText = fmt(now); if(dt) dt.innerText = fmt(dur);
+                if(!player || !player.getCurrentTime) return;
+                const c = player.getCurrentTime(), d = player.getDuration();
+                if (d > 0) {
+                    const fill = document.getElementById('p-fill'), cur = document.getElementById('p-curr'), dur = document.getElementById('p-dur');
+                    if(fill) fill.style.width = (c/d)*100+'%';
+                    if(cur) cur.innerText = fmtTime(c); if(dur) dur.innerText = fmtTime(d);
                 }
             }, 1000);
         }
-
         function stopTracker() { clearInterval(progressInterval); }
-        function fmt(s) { const m=Math.floor(s/60),r=Math.floor(s%60); return `${m}:${r<10?'0':''}${r}`; }
+        function fmtTime(s) { const m=Math.floor(s/60),r=Math.floor(s%60); return `${m}:${r<10?'0':''}${r}`; }
+
+        // --- DB OPS ---
+        async function logHistory(id, title, thumb, artist) {
+            if(!currentUser) return;
+            try { await supabaseClient.from('history').insert({ user_id: currentUser.id, video_id: id, title, thumb, artist }); } catch(e){}
+        }
 
         async function toggleFavorite() {
             if (!currentSong) return;
             const { data } = await supabaseClient.from('favorites').select('id').eq('user_id', currentUser.id).eq('video_id', currentSong.id).single();
             if (data) await supabaseClient.from('favorites').delete().eq('id', data.id);
             else await supabaseClient.from('favorites').insert({ user_id: currentUser.id, video_id: currentSong.id, title: currentSong.title, thumb: currentSong.thumb, artist: currentSong.artist });
-            syncFavIcon();
+            syncFavUI();
         }
 
-        async function syncFavIcon() {
+        async function syncFavUI() {
             if (!currentSong) return;
             const { data } = await supabaseClient.from('favorites').select('id').eq('user_id', currentUser.id).eq('video_id', currentSong.id).single();
             const color = data ? '#ef4444' : '#737373';
-            const mainFav = document.getElementById('main-fav-btn'), fullFav = document.getElementById('full-fav-btn');
-            if(mainFav) mainFav.style.color = color; if(fullFav) fullFav.style.color = color;
+            const m = document.getElementById('main-fav-btn'), f = document.getElementById('full-fav-btn');
+            if(m) { m.style.color = color; m.innerHTML = data ? '<i data-lucide="heart" fill="#ef4444"></i>' : '<i data-lucide="heart"></i>'; }
+            if(f) { f.style.color = color; f.innerHTML = data ? '<i data-lucide="heart" fill="#ef4444"></i>' : '<i data-lucide="heart"></i>'; }
+            lucide.createIcons();
         }
 
-        async function refreshHistory() {
-            const { data } = await supabaseClient.from('history').select('*').eq('user_id', currentUser.id).order('played_at', { ascending: false }).limit(30);
-            document.getElementById('history-grid').innerHTML = data.map(s => `
-                <div class="glass p-5 rounded-[2.5rem] cursor-pointer hover:bg-white/5 transition-all" onclick="initPlay('${s.video_id}','${s.title}','${s.thumb}','${s.artist}')">
-                    <img src="${s.thumb}" class="rounded-[2rem] mb-4 aspect-square object-cover shadow-lg">
-                    <h4 class="text-sm font-bold truncate leading-tight">${s.title}</h4>
-                    <p class="text-[9px] text-neutral-500 uppercase mt-2 font-black">${s.artist}</p>
-                </div>`).join('');
-        }
-
-        async function syncPlaylists() {
+        async function syncLibrary() {
             const { data } = await supabaseClient.from('playlists').select('*').eq('user_id', currentUser.id);
-            document.getElementById('sidebar-playlists').innerHTML = data.map(p => `<button class="w-full text-left p-4 rounded-2xl hover:bg-white/5 text-xs font-bold text-neutral-400 flex items-center gap-4 transition-all"><i data-lucide="list"></i> <span class="truncate">${p.name}</span></button>`).join('');
+            const side = document.getElementById('sidebar-playlists');
+            side.innerHTML = data.map(p => `<button class="w-full text-left p-4 rounded-2xl hover:bg-white/5 text-xs font-black text-neutral-400 flex items-center gap-4 transition-all"><i data-lucide="list"></i> <span class="truncate">${p.name}</span></button>`).join('');
             lucide.createIcons();
         }
 
         window.createNewPlaylist = async () => {
-            const n = prompt("Yeni Çalma Listesi Adı:");
-            if (n) { await supabaseClient.from('playlists').insert({ user_id: currentUser.id, name: n }); syncPlaylists(); }
+            const n = prompt("Çalma Listesi İsmi:");
+            if (n) { await supabaseClient.from('playlists').insert({ user_id: currentUser.id, name: n }); syncLibrary(); }
         };
 
-        window.toggleLoop = () => { isLooping = !isLooping; document.getElementById('loop-btn').style.color = isLooping ? '#6366f1' : '#737373'; };
-        window.restartSong = () => player && player.seekTo(0);
-        window.openFullscreen = () => {
-            if (!currentSong) return;
-            const fullImg = document.getElementById('full-cover-img'), fullTitle = document.getElementById('full-song-title'), fullArtist = document.getElementById('full-song-artist');
-            if(fullImg) fullImg.src = currentSong.thumb; if(fullTitle) fullTitle.innerText = currentSong.title; if(fullArtist) fullArtist.innerText = currentSong.artist;
-            const ov = document.getElementById('now-playing-overlay');
-            ov.classList.remove('hide'); ov.classList.add('active');
-            renderQueue();
-        };
-        window.closeFullscreen = () => {
-            const ov = document.getElementById('now-playing-overlay');
-            ov.classList.remove('active');
-            setTimeout(() => ov.classList.add('hide'), 500);
+        window.clearHistory = async () => {
+            if(confirm("Tüm geçmiş silinsin mi?")) {
+                await supabaseClient.from('history').delete().eq('user_id', currentUser.id);
+                refreshHistoryView();
+            }
         };
 
+        // --- NAVIGATION ---
         window.changeTab = (t) => {
             document.querySelectorAll('section').forEach(s => s.classList.add('hide'));
             document.getElementById(`tab-${t}`).classList.remove('hide');
             document.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active'));
-            const nt = document.getElementById(`nav-${t}`); if(nt) nt.classList.add('active');
-            if (t === 'history') refreshHistory();
-            if (t === 'favorites') refreshFavs();
+            const n = document.getElementById(`nav-${t}`); if(n) n.classList.add('active');
+            
+            if (t === 'history') refreshHistoryView();
+            if (t === 'favorites') refreshFavoritesView();
+            
             document.getElementById('sidebar').classList.remove('active');
             lucide.createIcons();
+            document.getElementById('main-scroll').scrollTo(0,0);
         };
 
-        async function refreshFavs() {
-            const { data } = await supabaseClient.from('favorites').select('*').eq('user_id', currentUser.id);
-            document.getElementById('favorites-grid').innerHTML = data.map(s => `
-                <div class="glass p-5 rounded-[2.5rem] cursor-pointer" onclick="initPlay('${s.video_id}','${s.title}','${s.thumb}','${s.artist}')">
+        async function refreshHistoryView() {
+            const { data } = await supabaseClient.from('history').select('*').eq('user_id', currentUser.id).order('played_at', { ascending: false }).limit(24);
+            const grid = document.getElementById('history-grid');
+            grid.innerHTML = data.map(s => `
+                <div class="glass p-5 rounded-[2.5rem] cursor-pointer hover:bg-white/5 transition-all" onclick="playSong('${s.video_id}','${s.title}','${s.thumb}','${s.artist}')">
                     <img src="${s.thumb}" class="rounded-[2rem] mb-4 aspect-square object-cover shadow-lg">
-                    <h4 class="text-sm font-bold truncate leading-tight">${s.title}</h4>
-                    <p class="text-[9px] text-neutral-500 uppercase mt-2 font-black">${s.artist}</p>
+                    <h4 class="text-sm font-black truncate">${s.title}</h4>
                 </div>`).join('');
         }
 
-        async function searchSongs(q) {
-            const res = await fetch(`https://www.googleapis.com/youtube/v3/search?part=snippet&maxResults=20&q=${encodeURIComponent(q)}&type=video&key=${YT_API_KEY}`);
-            const data = await res.json(); renderGrid(data.items, 'music-grid');
+        async function refreshFavoritesView() {
+            const { data } = await supabaseClient.from('favorites').select('*').eq('user_id', currentUser.id);
+            const grid = document.getElementById('favorites-grid');
+            grid.innerHTML = data.map(s => `
+                <div class="glass p-5 rounded-[2.5rem] cursor-pointer hover:bg-white/5 transition-all" onclick="playSong('${s.video_id}','${s.title}','${s.thumb}','${s.artist}')">
+                    <img src="${s.thumb}" class="rounded-[2rem] mb-4 aspect-square object-cover shadow-lg">
+                    <h4 class="text-sm font-black truncate">${s.title}</h4>
+                </div>`).join('');
         }
 
-        function updatePlayBtn() {
-            const b = document.getElementById('play-btn'); if(!b) return;
-            b.innerHTML = isPlaying ? '<i data-lucide="pause" fill="black" class="w-7 h-7"></i>' : '<i data-lucide="play" fill="black" class="ml-1 w-7 h-7"></i>';
-            lucide.createIcons();
-        }
-
+        // --- UI UTILS ---
+        window.openNowPlaying = () => {
+            if (!currentSong) return;
+            const fC = document.getElementById('full-cover'), fT = document.getElementById('full-title'), fA = document.getElementById('full-artist');
+            fC.src = currentSong.thumb; fT.innerText = currentSong.title; fA.innerText = currentSong.artist;
+            document.getElementById('now-playing-overlay').classList.add('active');
+            renderQueueUI();
+        };
+        window.closeNowPlaying = () => document.getElementById('now-playing-overlay').classList.remove('active');
+        
         window.openSettings = () => document.getElementById('settings-modal').classList.remove('hide');
         window.closeSettings = () => document.getElementById('settings-modal').classList.add('hide');
-        window.triggerCelebration = () => { document.getElementById('celebration-modal').classList.remove('hide'); confetti({ particleCount: 250, zIndex: 5000 }); lucide.createIcons(); };
+        
+        window.showCelebration = () => {
+            document.getElementById('celebration-modal').classList.remove('hide');
+            confetti({ particleCount: 300, spread: 100, origin: { y: 0.6 }, colors: ['#EAB308', '#F59E0B', '#6366F1'], zIndex: 9999 });
+        };
         window.closeCelebration = () => document.getElementById('celebration-modal').classList.add('hide');
-        window.togglePlay = () => isPlaying ? player.pauseVideo() : player.playVideo();
+
+        window.togglePlayback = () => isPlaying ? player.pauseVideo() : player.playVideo();
+        window.toggleLoop = () => { isLooping = !isLooping; document.getElementById('btn-loop').style.color = isLooping ? 'var(--accent)' : '#737373'; };
         window.toggleMute = () => {
-            if(!player) return;
-            const trigger = document.getElementById('mute-trigger');
-            if (player.isMuted()) { player.unMute(); trigger.innerHTML = '<i data-lucide="volume-2" class="w-5 h-5"></i>'; }
-            else { player.mute(); trigger.innerHTML = '<i data-lucide="volume-x" class="w-5 h-5 text-red-500"></i>'; }
+            const i = document.getElementById('mute-icon');
+            if (player.isMuted()) { player.unMute(); i.innerHTML = '<i data-lucide="volume-2"></i>'; }
+            else { player.mute(); i.innerHTML = '<i data-lucide="volume-x" class="text-red-500"></i>'; }
             lucide.createIcons();
         };
+
+        function updatePlayBtnUI() {
+            const b = document.getElementById('btn-play'); if(!b) return;
+            b.innerHTML = isPlaying ? '<i data-lucide="pause" fill="black" class="w-8 h-8"></i>' : '<i data-lucide="play" fill="black" class="ml-1 w-8 h-8"></i>';
+            lucide.createIcons();
+        }
     </script>
 </body>
 </html>
