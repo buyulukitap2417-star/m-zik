@@ -6,11 +6,11 @@
     <meta name="theme-color" content="#050505">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <!-- Referrer Policy: missing.referrer hatasını çözmek için zorunludur -->
+    <!-- YouTube Referrer (missing.referrer) hatasını önlemek için zorunludur -->
     <meta name="referrer" content="no-referrer-when-downgrade">
     <title>Youtipy - Müziğin Zirvesi</title>
     
-    <!-- PWA Manifest Simulation -->
+    <!-- Web App Manifest -->
     <link rel="manifest" href="data:application/manifest+json,{'name':'Youtipy','short_name':'Youtipy','start_url':'.','display':'standalone','background_color':'#050505','theme_color':'#6366f1'}">
 
     <!-- Harici Kütüphaneler -->
@@ -41,21 +41,21 @@
             -webkit-font-smoothing: antialiased;
         }
 
-        /* Tasarım Katmanları */
+        /* Tasarım Katmanları (Glassmorphism) */
         .glass { background: var(--glass); backdrop-filter: blur(40px); -webkit-backdrop-filter: blur(40px); border: 1px solid var(--glass-border); }
-        .glass-heavy { background: rgba(0, 0, 0, 0.9); backdrop-filter: blur(30px); border: 1px solid var(--glass-border); }
+        .glass-heavy { background: rgba(0, 0, 0, 0.85); backdrop-filter: blur(30px); border: 1px solid var(--glass-border); }
         .hide { display: none !important; }
         
-        /* Oynatıcı Barı (Boyutları Optimize Edildi) */
+        /* Oynatıcı Barı Yerleşimi ve Boyutu */
         #player-bar { 
             transform: translateY(100%); 
             transition: transform 0.6s cubic-bezier(0.16, 1, 0.3, 1); 
             z-index: 1000; 
-            height: 100px;
+            height: 90px; /* Sabit profesyonel yükseklik */
         }
         #player-bar.active { transform: translateY(0); }
 
-        /* Navigasyon Linkleri */
+        /* Navigasyon Stilleri */
         .nav-link { transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); border-radius: 1rem; }
         .nav-link:hover { background: rgba(255,255,255,0.03); }
         .nav-link.active { 
@@ -86,101 +86,122 @@
         }
         #fullscreen-overlay.active { top: 0; }
 
-        /* Müzik Kartları - Ölçeklendirme (Aşırı Büyümeyi Önleyen Grid) */
+        /* Kart Ölçeklendirme (Grid Hiyerarşisi) */
         .song-card { 
             transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1); 
             cursor: pointer; 
             border: 1px solid transparent;
-            padding: 12px;
-            border-radius: 1.5rem;
+            padding: 10px;
+            border-radius: 1.25rem;
         }
         .song-card:hover { 
             transform: translateY(-8px); 
             background: rgba(255,255,255,0.05); 
             border-color: rgba(255,255,255,0.08);
         }
-        .song-card img { border-radius: 1.25rem; width: 100%; aspect-ratio: 1/1; object-fit: cover; }
+        .song-card img { border-radius: 1rem; width: 100%; aspect-ratio: 1/1; object-fit: cover; }
 
         /* YouTube API Konteyneri (Gizli) */
         #yt-api-bridge-root { 
             position: fixed; top: -5000px; left: -5000px; 
-            width: 2px; height: 2px; opacity: 0; pointer-events: none; 
+            width: 1px; height: 1px; opacity: 0; pointer-events: none; 
             z-index: -999;
         }
 
-        /* İnce Kaydırma Çubuğu */
-        ::-webkit-scrollbar { width: 4px; }
+        /* Range Bar Stilleri */
+        input[type=range] { 
+            accent-color: var(--accent); 
+            cursor: pointer; 
+            height: 4px; 
+            border-radius: 10px; 
+            appearance: none; 
+            background: rgba(255,255,255,0.1); 
+        }
+        input[type=range]::-webkit-slider-thumb { 
+            appearance: none; 
+            width: 12px; height: 12px; 
+            background: white; border-radius: 50%; 
+            border: 2px solid var(--accent);
+            box-shadow: 0 0 8px var(--accent-glow);
+        }
+
+        /* Animasyonlar */
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(15px); } to { opacity: 1; transform: translateY(0); } }
+        .animate-in { animation: fadeIn 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+
+        /* Custom Scroll */
+        ::-webkit-scrollbar { width: 3px; }
         ::-webkit-scrollbar-track { background: transparent; }
         ::-webkit-scrollbar-thumb { background: rgba(99, 102, 241, 0.2); border-radius: 20px; }
         
-        /* Toast Bildirim */
+        /* Toast Mesajı */
         .toast-msg {
             background: rgba(0,0,0,0.9); backdrop-filter: blur(10px);
-            border: 1px solid rgba(255,255,255,0.1); padding: 12px 24px;
-            border-radius: 100px; color: white; font-weight: 700; font-size: 13px;
+            border: 1px solid rgba(255,255,255,0.1); padding: 10px 20px;
+            border-radius: 100px; color: white; font-weight: 700; font-size: 12px;
             box-shadow: 0 10px 40px rgba(0,0,0,0.5);
             animation: toastSlide 0.3s ease-out;
+            pointer-events: auto;
         }
         @keyframes toastSlide { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
 
-        /* Loading Spinner */
-        .loading-spin { border: 3px solid rgba(255,255,255,0.1); border-top-color: var(--accent); border-radius: 50%; width: 24px; height: 24px; animation: spin 1s linear infinite; }
-        @keyframes spin { to { transform: rotate(360deg); } }
+        /* Offline Durumu Dot */
+        .offline-badge { width: 6px; height: 6px; background: #10b981; border-radius: 50%; box-shadow: 0 0 8px #10b981; }
     </style>
 </head>
-<body class="bg-[#050505] selection:bg-indigo-500/30">
+<body class="bg-[#050505]">
 
     <!-- TOAST BİLDİRİM MERKEZİ -->
-    <div id="toast-center" class="fixed bottom-32 left-1/2 -translate-x-1/2 z-[9000] flex flex-col gap-3 items-center pointer-events-none"></div>
+    <div id="toast-center" class="fixed bottom-32 left-1/2 -translate-x-1/2 z-[9000] flex flex-col gap-2 items-center pointer-events-none"></div>
 
     <!-- 1. SPLASH / GİRİŞ YÜKLENİYOR EKRANI -->
     <div id="splash-layer" class="fixed inset-0 flex flex-col items-center justify-center bg-[#050505] z-[9999] transition-opacity duration-700">
         <div class="relative mb-10">
-            <div class="absolute -inset-12 bg-indigo-600/10 blur-[80px] rounded-full animate-pulse"></div>
+            <div class="absolute -inset-10 bg-indigo-600/10 blur-[80px] rounded-full animate-pulse"></div>
             <div class="w-20 h-20 bg-gradient-to-br from-indigo-600 via-indigo-500 to-purple-600 rounded-[1.8rem] flex items-center justify-center shadow-2xl rotate-12 transition-all duration-1000">
                 <i data-lucide="music" class="text-white w-10 h-10"></i>
             </div>
         </div>
-        <h1 class="text-4xl font-black tracking-tighter mb-4 italic uppercase bg-clip-text text-transparent bg-gradient-to-b from-white to-neutral-500">YOUTIPY</h1>
-        <p id="splash-status-text" class="text-neutral-600 font-bold tracking-[0.4em] text-[8px] uppercase">Sistem Parametreleri Senkronize Ediliyor</p>
+        <h1 class="text-3xl font-black tracking-tighter mb-4 italic uppercase bg-clip-text text-transparent bg-gradient-to-b from-white to-neutral-500">YOUTIPY</h1>
+        <p id="splash-status-msg" class="text-neutral-600 font-bold tracking-[0.4em] text-[7px] uppercase">Bağlantı Kuruluyor</p>
     </div>
 
     <!-- 2. REKLAM KATMANI (AD ENGINE) -->
     <div id="ad-panel" class="fixed inset-0 hide flex flex-col items-center justify-center p-8 text-center z-[8500] bg-black/98 backdrop-blur-3xl">
         <div class="max-w-3xl w-full space-y-10 animate-in">
             <div class="space-y-4">
-                <div class="inline-flex px-4 py-1.5 rounded-full bg-yellow-500/10 border border-yellow-500/20 text-yellow-500 text-[8px] font-black tracking-[0.3em] uppercase">Sponsorlu Arası</div>
-                <h2 class="text-5xl font-black italic tracking-tighter uppercase leading-none">MÜZİĞE KISA BİR ARA</h2>
-                <p class="text-neutral-400 text-lg font-medium">Reklam sona erdiğinde en iyi listeler geri dönecek.</p>
+                <div class="inline-flex px-4 py-1.5 rounded-full bg-yellow-500/10 border border-yellow-500/20 text-yellow-500 text-[8px] font-black tracking-[0.3em] uppercase">Müzik Molası</div>
+                <h2 class="text-5xl font-black italic tracking-tighter uppercase leading-none">REKLAMDAN SONRA DEVAM</h2>
+                <p class="text-neutral-400 text-lg font-medium italic">Reklam sona erdiğinde en iyi listeler geri dönecek.</p>
             </div>
-            <div class="aspect-video w-full glass rounded-[3.5rem] overflow-hidden bg-neutral-900 border-white/5 relative shadow-3xl">
+            <div class="aspect-video w-full glass rounded-[3rem] overflow-hidden bg-neutral-900 border-white/5 relative shadow-3xl">
                 <video id="ad-video-element" class="w-full h-full object-cover"></video>
-                <div class="absolute bottom-10 right-10 bg-black/80 backdrop-blur-3xl px-6 py-3 rounded-2xl border border-white/10">
-                    <span class="text-base font-black tracking-tighter italic">BİTİŞE: <span id="ad-timer-label" class="text-indigo-400">10</span>S</span>
+                <div class="absolute bottom-8 right-8 bg-black/80 backdrop-blur-3xl px-6 py-3 rounded-2xl border border-white/10">
+                    <span class="text-sm font-black tracking-tighter italic uppercase">KALAN: <span id="ad-timer-label" class="text-indigo-400">10</span>S</span>
                 </div>
             </div>
-            <button onclick="changeTab('pro')" class="px-10 py-5 rounded-3xl bg-white text-black font-black hover:scale-105 transition-all uppercase tracking-widest text-sm shadow-xl active:scale-95">REKLAMLARI KALDIR (PRO)</button>
+            <button onclick="changeTab('pro')" class="px-10 py-5 rounded-3xl bg-white text-black font-black hover:scale-105 transition-all uppercase tracking-widest text-xs shadow-xl active:scale-95">REKLAMLARI KALDIR (PRO)</button>
         </div>
     </div>
 
     <!-- 3. AUTH / GİRİŞ & KAYIT SİSTEMİ -->
     <div id="auth-panel" class="fixed inset-0 z-[7000] hide flex items-center justify-center p-4 bg-black/95 backdrop-blur-3xl">
-        <div class="glass max-w-md w-full p-10 rounded-[3.5rem] shadow-2xl relative overflow-hidden animate-in">
+        <div class="glass max-md:w-full max-w-md p-10 rounded-[3.5rem] shadow-2xl relative overflow-hidden animate-in">
             <div class="absolute -top-32 -right-32 w-64 h-64 bg-indigo-600/10 blur-[120px]"></div>
             <div class="text-center mb-10 relative">
                 <div class="w-16 h-16 bg-indigo-600 rounded-[1.2rem] flex items-center justify-center mx-auto mb-8 shadow-2xl rotate-6">
                     <i data-lucide="shield-check" class="text-white w-8 h-8"></i>
                 </div>
-                <h2 id="auth-header-label" class="text-3xl font-black tracking-tighter uppercase italic leading-none">OTURUM AÇ</h2>
-                <p class="text-neutral-500 mt-4 text-xs font-medium leading-relaxed italic px-4">Youtipy dünyasına bağlanmak için giriş yapın.</p>
+                <h2 id="auth-header-label" class="text-3xl font-black tracking-tighter uppercase italic leading-none">HESABINA BAĞLAN</h2>
+                <p class="text-neutral-500 mt-4 text-xs font-medium leading-relaxed italic px-4">En sevdiğin tınılara kavuşmak için oturum aç.</p>
             </div>
             <form id="auth-form-logic" class="space-y-4 relative">
                 <div class="space-y-1 px-2">
-                    <label class="text-[9px] font-black text-neutral-600 uppercase tracking-[0.3em] ml-2">E-posta</label>
+                    <label class="text-[8px] font-black text-neutral-600 uppercase tracking-[0.3em] ml-2">E-POSTA</label>
                     <input type="email" id="auth-email-in" required class="w-full bg-white/5 border border-white/10 rounded-2xl p-4 outline-none focus:ring-4 focus:ring-indigo-500/20 transition-all text-white font-semibold text-sm" placeholder="Email adresini gir">
                 </div>
                 <div class="space-y-1 px-2">
-                    <label class="text-[9px] font-black text-neutral-600 uppercase tracking-[0.3em] ml-2">Şifre</label>
+                    <label class="text-[8px] font-black text-neutral-600 uppercase tracking-[0.3em] ml-2">ŞİFRE</label>
                     <input type="password" id="auth-pass-in" required class="w-full bg-white/5 border border-white/10 rounded-2xl p-4 outline-none focus:ring-4 focus:ring-indigo-500/20 transition-all text-white font-semibold text-sm" placeholder="Şifreni belirle">
                 </div>
                 <button type="submit" id="auth-submit-btn" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-black py-5 rounded-2xl shadow-2xl transition-all active:scale-95 text-base uppercase italic tracking-tighter mt-2">GİRİŞ YAP</button>
@@ -194,7 +215,7 @@
     <!-- 4. ANA UYGULAMA ARAYÜZÜ (APP SHELL) -->
     <div id="app-view-root" class="h-screen flex flex-col hide animate-in">
         
-        <!-- Header / Üst Panel -->
+        <!-- Üst Panel -->
         <header class="h-20 glass flex items-center justify-between px-6 lg:px-12 border-b border-white/5 z-[200]">
             <div class="flex items-center gap-5">
                 <button id="mobile-sidebar-toggle" class="lg:hidden p-3 rounded-xl bg-white/5 hover:bg-white/10 transition-all active:scale-90"><i data-lucide="menu" class="w-5 h-5"></i></button>
@@ -206,20 +227,20 @@
                 </div>
             </div>
 
-            <!-- Akıllı Arama Çubuğu -->
+            <!-- Arama -->
             <div class="flex-1 max-w-xl mx-6 lg:mx-16 relative group">
                 <input type="text" id="main-global-search" autocomplete="off" placeholder="Hangi melodiyi arıyorsun?..." 
                     class="w-full bg-white/5 border border-white/10 rounded-full py-3 px-12 outline-none focus:ring-4 focus:ring-indigo-500/20 focus:bg-white/10 transition-all text-white text-xs font-semibold">
                 <i data-lucide="search" class="absolute left-5 top-3 text-neutral-500 w-4 h-4 group-focus-within:text-indigo-400 transition-colors"></i>
                 
-                <!-- Arama Önerileri -->
-                <div id="search-suggest-overlay" class="absolute top-full left-0 right-0 mt-3 glass-heavy rounded-[2.5rem] p-5 hide border-white/10 shadow-4xl animate-in">
-                    <p class="text-[9px] font-black text-neutral-600 uppercase tracking-[0.3em] mb-4 px-2">Akıllı Öneriler</p>
+                <!-- Öneriler -->
+                <div id="search-suggest-overlay" class="absolute top-full left-0 right-0 mt-3 glass-heavy rounded-[2rem] p-4 hide border-white/10 shadow-4xl animate-in">
+                    <p class="text-[8px] font-black text-neutral-600 uppercase tracking-[0.3em] mb-4 px-2">Akıllı Öneriler</p>
                     <div id="suggest-render-list" class="space-y-1"></div>
                 </div>
             </div>
 
-            <!-- Profil Paneli -->
+            <!-- Profil -->
             <div class="flex items-center gap-4">
                 <div class="flex items-center gap-3 bg-white/5 p-1 pr-5 rounded-full border border-white/10 hover:border-white/20 transition-all cursor-pointer group shadow-xl" onclick="openSettings()">
                     <div id="user-avatar-top" class="w-8 h-8 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-full flex items-center justify-center font-black text-xs border border-white/10 shadow-2xl">?</div>
@@ -232,7 +253,7 @@
         </header>
 
         <div class="flex flex-1 overflow-hidden relative">
-            <!-- Sidebar / Yan Menü -->
+            <!-- Sidebar -->
             <aside id="main-sidebar-panel" class="sidebar-panel w-64 glass border-r border-white/5 p-6 flex flex-col gap-8 overflow-y-auto">
                 <div class="lg:hidden flex justify-between items-center mb-6">
                     <span class="text-xl font-black italic tracking-tighter">YOUTIPY</span>
@@ -243,16 +264,16 @@
                     <div class="space-y-4">
                         <p class="text-[9px] font-black text-neutral-600 uppercase tracking-[0.4em] px-4">Kütüphane</p>
                         <nav class="space-y-1.5">
-                            <button onclick="changeTab('home')" id="n-btn-home" class="nav-link active w-full flex items-center gap-4 p-3.5 rounded-2xl text-sm font-bold transition-all">
+                            <button onclick="changeTab('home')" id="n-btn-home" class="nav-link active w-full flex items-center gap-4 p-3 rounded-xl text-xs font-bold transition-all">
                                 <i data-lucide="zap" class="w-4 h-4"></i> Keşfet
                             </button>
-                            <button onclick="changeTab('favorites')" id="n-btn-favorites" class="nav-link w-full flex items-center gap-4 p-3.5 rounded-2xl text-sm font-bold text-neutral-400">
+                            <button onclick="changeTab('favorites')" id="n-btn-favorites" class="nav-link w-full flex items-center gap-4 p-3 rounded-xl text-xs font-bold text-neutral-400">
                                 <i data-lucide="heart" class="w-4 h-4"></i> Favoriler
                             </button>
-                            <button onclick="changeTab('history')" id="n-btn-history" class="nav-link w-full flex items-center gap-4 p-3.5 rounded-2xl text-sm font-bold text-neutral-400">
+                            <button onclick="changeTab('history')" id="n-btn-history" class="nav-link w-full flex items-center gap-4 p-3 rounded-xl text-xs font-bold text-neutral-400">
                                 <i data-lucide="history" class="w-4 h-4"></i> Geçmiş
                             </button>
-                            <button onclick="changeTab('pro')" id="n-btn-pro" class="nav-link w-full flex items-center justify-between p-3.5 rounded-2xl text-sm font-bold text-neutral-400 group">
+                            <button onclick="changeTab('pro')" id="n-btn-pro" class="nav-link w-full flex items-center justify-between p-3 rounded-xl text-xs font-bold text-neutral-400 group">
                                 <div class="flex items-center gap-4"><i data-lucide="crown" class="w-4 h-4 text-yellow-500"></i> Pro</div>
                             </button>
                         </nav>
@@ -263,9 +284,7 @@
                             <p class="text-[9px] font-black text-neutral-600 uppercase tracking-[0.4em]">Listelerin</p>
                             <button onclick="initPlaylistWorkflow()" class="text-indigo-400 hover:scale-125 transition-transform"><i data-lucide="plus-circle" class="w-4 h-4"></i></button>
                         </div>
-                        <div id="side-playlist-render-area" class="space-y-1 px-1">
-                            <!-- Playlists Dynamic -->
-                        </div>
+                        <div id="side-playlist-render-area" class="space-y-1 px-1"></div>
                     </div>
                 </div>
 
@@ -277,10 +296,10 @@
             </aside>
 
             <!-- Ana İçerik Kaydırma Alanı -->
-            <main class="flex-1 overflow-y-auto p-6 lg:p-12 pb-48 scroll-smooth" id="main-viewport-scroll">
+            <main class="flex-1 overflow-y-auto p-6 lg:p-10 pb-48 scroll-smooth" id="main-viewport-scroll">
                 
-                <!-- TAB: TRENDLER -->
-                <section id="tab-home" class="space-y-12 animate-in">
+                <!-- TRENDLER -->
+                <section id="tab-home" class="space-y-10 animate-in">
                     <div class="flex flex-col md:flex-row md:items-end justify-between gap-8 border-b border-white/5 pb-8">
                         <div class="space-y-4">
                             <div class="flex items-center gap-4">
@@ -290,40 +309,37 @@
                                 </span>
                                 <h2 class="text-5xl font-black tracking-tighter italic uppercase leading-none">TRENDLER</h2>
                             </div>
-                            <p class="text-neutral-500 text-lg font-medium max-w-2xl leading-relaxed italic">Türkiye anlık en popüler hit parçaları.</p>
+                            <p class="text-neutral-500 text-lg font-medium max-w-2xl leading-relaxed italic">Türkiye listelerinin zirvesindeki anlık en popüler 24 hit parça.</p>
                         </div>
                         <div id="skip-limit-box" class="glass px-8 py-4 rounded-[2rem] border border-white/10 flex items-center gap-6 shadow-2xl">
                             <div class="flex flex-col items-center">
                                 <span class="text-[8px] font-black text-neutral-600 uppercase tracking-widest mb-0.5 italic">Hakkın</span>
-                                <span id="label-skips-left" class="text-indigo-400 font-black text-2xl tracking-tighter">5</span>
+                                <span id="label-skips-left" class="text-indigo-400 font-black text-xl tracking-tighter">5</span>
                             </div>
                             <div class="w-px h-8 bg-white/10"></div>
-                            <p class="text-[9px] text-neutral-500 font-bold uppercase tracking-widest italic leading-none">Standart<br>Üyelik</p>
+                            <p class="text-[9px] text-neutral-500 font-bold uppercase tracking-widest italic leading-none text-center">Standart<br>Üyelik</p>
                         </div>
                     </div>
                     
-                    <div id="grid-home-trends-render" class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-6 md:gap-10"></div>
+                    <div id="grid-home-trends-render" class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-6 lg:gap-8"></div>
                 </section>
 
-                <!-- TAB: FAVORİLER -->
                 <section id="tab-favorites" class="hide space-y-10 animate-in">
                     <h2 class="text-5xl font-black tracking-tighter uppercase italic leading-none">FAVORİLERİN</h2>
-                    <div id="grid-favorites-render" class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 2xl:grid-cols-6 gap-6"></div>
+                    <div id="grid-favorites-render" class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 2xl:grid-cols-6 gap-8"></div>
                 </section>
 
-                <!-- TAB: GEÇMİŞ -->
                 <section id="tab-history" class="hide space-y-10 animate-in">
                     <div class="flex justify-between items-end border-b border-white/5 pb-8">
                         <h2 class="text-5xl font-black tracking-tighter uppercase italic leading-none">GEÇMİŞ</h2>
-                        <button onclick="execClearHistory()" class="px-6 py-2 rounded-full bg-red-500/10 text-red-500 text-[9px] font-black uppercase tracking-[0.2em] border border-red-500/20 hover:bg-red-500 hover:text-white transition-all shadow-xl active:scale-95">Temizle</button>
+                        <button onclick="execClearHistory()" class="px-6 py-2 rounded-full bg-red-500/10 text-red-500 text-[9px] font-black uppercase tracking-[0.3em] border border-red-500/20 hover:bg-red-500 hover:text-white transition-all shadow-xl active:scale-95">Temizle</button>
                     </div>
-                    <div id="grid-history-render" class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 2xl:grid-cols-6 gap-6"></div>
+                    <div id="grid-history-render" class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 2xl:grid-cols-6 gap-8"></div>
                 </section>
 
-                <!-- TAB: PRO SÜRÜM -->
-                <section id="tab-pro" class="hide py-10 text-center space-y-16 max-w-5xl mx-auto animate-in">
-                    <div class="space-y-8">
-                        <div class="w-32 h-32 bg-gradient-to-br from-yellow-400 via-orange-500 to-red-600 rounded-[3.5rem] flex items-center justify-center mx-auto shadow-[0_40px_80px_-15px_rgba(234,179,8,0.5)] rotate-12 transition-transform hover:rotate-0 duration-700">
+                <section id="tab-pro" class="hide py-10 text-center space-y-20 max-w-6xl mx-auto animate-in">
+                    <div class="space-y-10">
+                        <div class="w-32 h-32 bg-gradient-to-br from-yellow-400 via-orange-500 to-red-600 rounded-[3rem] flex items-center justify-center mx-auto shadow-[0_40px_80px_-15px_rgba(234,179,8,0.5)] rotate-12 transition-transform hover:rotate-0 duration-700">
                             <i data-lucide="crown" class="text-black w-14 h-14"></i>
                         </div>
                         <h2 class="text-7xl font-black tracking-tighter italic text-yellow-500 uppercase leading-none">YOUTIPY PRO</h2>
@@ -331,10 +347,10 @@
                     </div>
                     <div class="glass p-12 md:p-24 rounded-[5rem] border-2 border-yellow-500/20 shadow-2xl relative overflow-hidden group">
                         <div class="absolute -top-32 -left-32 w-80 h-80 bg-yellow-500/5 blur-[120px]"></div>
-                        <h3 class="text-3xl font-black mb-12 uppercase italic tracking-tighter">Aktivasyon Kodu Girin</h3>
-                        <div class="flex flex-col sm:flex-row gap-6 max-w-2xl mx-auto relative z-10">
-                            <input type="text" id="inp-pro-activation-code" placeholder="KOD: ProTipy" 
-                                class="flex-1 bg-black/60 border-2 border-white/5 rounded-[2.5rem] px-12 py-8 outline-none focus:ring-4 focus:ring-yellow-500/20 text-white font-black tracking-[0.4em] text-center text-xl uppercase transition-all shadow-xl">
+                        <h3 class="text-4xl font-black mb-16 uppercase italic tracking-tighter">Aktivasyon Kodu Girin</h3>
+                        <div class="flex flex-col sm:flex-row gap-8 max-w-2xl mx-auto relative z-10">
+                            <input type="text" id="inp-pro-activation-code" placeholder="ÖRN: ProTipy" 
+                                class="flex-1 bg-black/60 border-2 border-white/5 rounded-[2.5rem] px-12 py-8 outline-none focus:ring-4 focus:ring-yellow-500/20 text-white font-black tracking-[0.4em] text-center text-2xl uppercase transition-all shadow-xl">
                             <button onclick="handleProActivationLogic()" class="bg-yellow-500 hover:bg-yellow-400 text-black font-black px-16 py-8 rounded-[2.5rem] shadow-2xl transition-all active:scale-95 text-xl tracking-tighter italic font-bold">AKTİF ET</button>
                         </div>
                     </div>
@@ -342,19 +358,22 @@
             </main>
         </div>
 
-        <!-- OYNATICI ÇUBUĞU (PLAYER BAR) -->
-        <div id="player-bar" class="fixed bottom-0 left-0 right-0 glass-heavy border-t border-white/10 px-6 lg:px-14 flex items-center justify-between shadow-4xl">
+        <!-- PLAYER BAR -->
+        <div id="player-bar" class="fixed bottom-0 left-0 right-0 glass-heavy border-t border-white/10 px-6 lg:px-12 flex items-center justify-between shadow-4xl">
             <!-- Sol -->
             <div class="flex items-center gap-6 w-1/4">
                 <div class="relative group cursor-pointer" onclick="openFullscreenView()">
-                    <img id="p-mini-thumb" src="" class="w-14 h-14 lg:w-18 lg:h-18 rounded-2xl object-cover shadow-2xl hide border border-white/10 transition-transform group-hover:scale-105 active:scale-110">
+                    <img id="p-mini-thumb" src="" class="w-14 h-14 lg:w-16 lg:h-16 rounded-2xl object-cover shadow-2xl hide border border-white/10 transition-transform group-hover:scale-105 active:scale-110">
                     <div class="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 rounded-2xl flex items-center justify-center transition-all">
                         <i data-lucide="maximize" class="w-5 h-5 text-white animate-pulse"></i>
                     </div>
                 </div>
                 <div class="overflow-hidden hidden sm:block space-y-1">
-                    <h4 id="p-mini-title" class="text-xs font-black truncate text-white uppercase tracking-tighter">Seçilmedi</h4>
-                    <p id="p-mini-artist" class="text-[9px] text-neutral-500 truncate font-black tracking-widest uppercase italic opacity-60">Youtipy Premium</p>
+                    <h4 id="p-mini-title" class="text-sm font-black truncate text-white uppercase tracking-tighter">Seçilmedi</h4>
+                    <div class="flex items-center gap-2">
+                        <span id="p-offline-badge" class="hide offline-badge" title="İndirildi"></span>
+                        <p id="p-mini-artist" class="text-[9px] text-neutral-500 truncate font-black tracking-widest uppercase italic opacity-60">Youtipy Stream</p>
+                    </div>
                 </div>
             </div>
 
@@ -362,9 +381,9 @@
             <div class="flex flex-col items-center gap-2.5 w-2/4 min-w-[280px]">
                 <div class="flex items-center gap-8 lg:gap-12">
                     <button onclick="toggleLoopMode()" id="p-btn-loop" class="text-neutral-600 hover:text-indigo-400 transition-all p-2"><i data-lucide="repeat" class="w-4 h-4"></i></button>
-                    <button onclick="restartTrack()" class="text-neutral-500 hover:text-white hidden md:block p-2"><i data-lucide="rotate-ccw" class="w-8 h-8"></i></button>
+                    <button onclick="restartTrack()" class="text-neutral-500 hover:text-white hidden md:block p-2"><i data-lucide="rotate-ccw" class="w-6 h-6"></i></button>
                     
-                    <button onclick="togglePlayPause()" id="p-btn-play" class="w-16 h-16 bg-white text-black rounded-full flex items-center justify-center hover:scale-110 shadow-3xl transition-all active:scale-95 border border-white/20">
+                    <button onclick="togglePlayPause()" id="p-btn-play" class="w-14 h-14 bg-white text-black rounded-full flex items-center justify-center hover:scale-110 shadow-3xl transition-all active:scale-95 border border-white/20">
                         <i data-lucide="play" fill="black" class="ml-0.5 w-7 h-7"></i>
                     </button>
                     
@@ -385,7 +404,7 @@
             <!-- Sağ -->
             <div class="flex items-center justify-end gap-5 w-1/4">
                 <button onclick="execDownloadAction()" class="text-neutral-400 hover:text-indigo-400 transition-all hidden md:block p-2"><i data-lucide="download" class="w-5 h-5"></i></button>
-                <div class="items-center gap-3 hidden lg:flex bg-white/5 px-4 py-2 rounded-2xl border border-white/5 shadow-xl">
+                <div class="items-center gap-3 hidden lg:flex bg-white/5 px-4 py-2.5 rounded-2xl border border-white/5 shadow-xl">
                     <button onclick="toggleMute()" id="p-btn-mute-icon" class="text-neutral-400 hover:text-white transition-colors"><i data-lucide="volume-2" class="w-4 h-4"></i></button>
                     <input type="range" id="p-volume-slider" min="0" max="100" value="80" class="w-20 md:w-28">
                 </div>
@@ -395,14 +414,14 @@
         </div>
     </div>
 
-    <!-- 6. TAM EKRAN MODALI (FULLSCREEN VIEW) -->
+    <!-- 6. TAM EKRAN MODALI (FULLSCREEN) -->
     <div id="now-playing-fullscreen" class="flex flex-col items-center justify-center p-8 md:p-24 hide scroll-smooth">
-        <button onclick="closeFullscreenView()" class="absolute top-10 left-10 p-4 glass rounded-full text-neutral-500 hover:text-white hover:scale-110 transition-all border border-white/10 shadow-3xl">
+        <button onclick="closeFullscreenView()" class="absolute top-12 left-12 p-4 glass rounded-full text-neutral-500 hover:text-white hover:scale-110 transition-all border border-white/10 shadow-3xl">
             <i data-lucide="chevron-down" class="w-12 h-12"></i>
         </button>
 
-        <div class="flex flex-col lg:flex-row w-full max-w-[1800px] h-full items-center gap-12 lg:gap-32 overflow-y-auto lg:overflow-visible pt-28 lg:pt-0">
-            <!-- Sol Panel -->
+        <div class="flex flex-col lg:flex-row w-full max-w-[1800px] h-full items-center gap-12 lg:gap-24 overflow-y-auto lg:overflow-visible pt-28 lg:pt-0">
+            <!-- Görsel Bölümü -->
             <div class="w-full lg:w-1/2 flex flex-col items-center text-center lg:text-left animate-in">
                 <div class="relative group mb-12">
                     <div class="absolute -inset-16 bg-indigo-500/5 blur-[150px] rounded-full"></div>
@@ -412,15 +431,15 @@
                     <h2 id="fs-main-title-label" class="text-5xl md:text-8xl font-black tracking-tight leading-[1] line-clamp-2 uppercase italic tracking-tighter">Müzik Bekleniyor</h2>
                     <p id="fs-main-artist-label" class="text-2xl md:text-4xl text-neutral-400 font-bold tracking-tight italic uppercase opacity-50 tracking-widest">Sanatçı Adı</p>
                     <div class="flex flex-wrap gap-8 items-center justify-center lg:justify-start pt-10 border-t border-white/5">
-                        <button onclick="toggleFavorite()" id="fs-main-fav-btn" class="p-8 glass rounded-full hover:scale-110 hover:bg-white/10 transition-all border border-white/10 shadow-3xl"><i data-lucide="heart" class="w-8 h-8"></i></button>
+                        <button onclick="toggleFavorite()" id="fs-main-fav-btn" class="p-8 glass rounded-full hover:scale-110 hover:bg-white/10 transition-all border border-white/10 shadow-3xl"><i data-lucide="heart" class="w-6 h-6"></i></button>
                         <button onclick="togglePlayPause()" class="p-12 bg-white text-black rounded-full hover:scale-110 transition-all shadow-4xl active:scale-95"><i data-lucide="play" fill="black" class="w-14 h-14 ml-1.5"></i></button>
-                        <button onclick="handleSkipLogic()" class="p-8 glass rounded-full hover:scale-110 hover:bg-white/10 transition-all border border-white/10 shadow-3xl"><i data-lucide="skip-forward" class="w-8 h-8"></i></button>
-                        <button onclick="execDownloadAction()" class="p-8 glass rounded-full hover:scale-110 hover:bg-white/10 transition-all border border-white/10 shadow-3xl"><i data-lucide="download" class="w-8 h-8"></i></button>
+                        <button onclick="handleSkipLogic()" class="p-8 glass rounded-full hover:scale-110 hover:bg-white/10 transition-all border border-white/10 shadow-3xl"><i data-lucide="skip-forward" class="w-6 h-6"></i></button>
+                        <button onclick="execDownloadAction()" class="p-8 glass rounded-full hover:scale-110 hover:bg-white/10 transition-all border border-white/10 shadow-3xl"><i data-lucide="download" class="w-6 h-6"></i></button>
                     </div>
                 </div>
             </div>
 
-            <!-- Sağ Panel -->
+            <!-- Kuyruk ve Sözler -->
             <div class="w-full lg:w-1/2 flex flex-col h-[65vh] lg:h-[85vh] animate-up" style="animation-delay: 0.2s">
                 <div class="flex items-center justify-between mb-10 border-b border-white/10 pb-8">
                     <div class="flex items-center gap-6">
@@ -445,7 +464,7 @@
     <div id="playlist-picker-modal" class="fixed inset-0 z-[8600] hide flex items-center justify-center p-6 bg-black/95 backdrop-blur-3xl">
         <div class="absolute inset-0" onclick="document.getElementById('playlist-picker-modal').classList.add('hide')"></div>
         <div class="relative glass max-w-lg w-full p-12 rounded-[5rem] border border-white/10 animate-up shadow-4xl">
-            <h3 class="text-2xl font-black mb-12 text-center uppercase tracking-tighter italic">KOLEKSİYONA EKLE</h3>
+            <h3 class="text-2xl font-black mb-10 text-center uppercase tracking-tighter italic">KOLEKSİYONA EKLE</h3>
             <div id="playlist-picker-scroll-content" class="space-y-3.5 max-h-[45vh] overflow-y-auto pr-4 mb-10 scroll-smooth"></div>
             <button onclick="document.getElementById('playlist-picker-modal').classList.add('hide')" class="w-full bg-white text-black font-black py-6 rounded-[2.5rem] uppercase text-[10px] tracking-widest shadow-2xl active:scale-95">PENCEREYİ KAPAT</button>
         </div>
@@ -488,7 +507,7 @@
             <div class="w-40 h-40 bg-yellow-500 rounded-full flex items-center justify-center mx-auto shadow-4xl border-[16px] border-black relative transition-transform duration-1000 hover:scale-110">
                 <i data-lucide="crown" class="text-black w-20 h-20 relative"></i>
             </div>
-            <h2 class="text-[8rem] font-black italic text-yellow-500 tracking-tighter uppercase leading-none mb-4">HARİKA!</h2>
+            <h2 class="text-[8rem] font-black italic text-yellow-500 tracking-tighter uppercase leading-none mb-4 shadow-yellow-500">MÜKEMMEL!</h2>
             <p class="text-4xl text-neutral-200 leading-snug font-black italic">"Artık Youtipy Pro dünyasındasın. Sınırlar bugün kalktı!"</p>
             <button onclick="closeProCelebrationModal()" class="bg-white text-black font-black px-28 py-10 rounded-[4rem] text-4xl uppercase tracking-widest transition-all hover:scale-110 active:scale-90 shadow-[0_40px_120px_rgba(255,255,255,0.3)] italic">HAYDİ BAŞLAYALIM!</button>
         </div>
@@ -501,18 +520,18 @@
         /**
          * CORE APP CONFIGURATION
          */
-        const CORE_CONFIG = {
-            YT_API_KEY: "AIzaSyAx4sh2SFKsXVhemr_cVlGpWpfAPaF6IeA",
-            SB_URL: "https://eygvzptaynyysagvgwyh.supabase.co",
-            SB_KEY: "sb_publishable_JixS3C4jQ2Znrgcr3-IZPg_1MfpvdXW",
+        const APP_VAR_KEY = {
+            YT_API_SEC: "AIzaSyAx4sh2SFKsXVhemr_cVlGpWpfAPaF6IeA",
+            SB_URL_SEC: "https://eygvzptaynyysagvgwyh.supabase.co",
+            SB_KEY_SEC: "sb_publishable_JixS3C4jQ2Znrgcr3-IZPg_1MfpvdXW",
             PRO_CODE: "ProTipy",
-            AD_SEC_FREQ: 45,
+            AD_CLOCK: 45,
             AD_LEN: 10,
-            MAX_SKIP_VAL: 5
+            MAX_SKIP: 5
         };
 
-        // Singleton Supabase Client
-        const clientSupabaseInstance = window.supabase.createClient(CORE_CONFIG.SB_URL, CORE_CONFIG.SB_KEY);
+        // Singleton Supabase Client Initialization (Refactored to avoid naming collisions)
+        const clientSupabaseInstance = window.supabase.createClient(APP_VAR_KEY.SB_URL_SEC, APP_VAR_KEY.SB_KEY_SEC);
         
         /**
          * GLOBAL APPLICATION STATE ENGINE
@@ -542,7 +561,7 @@
                 playerVars: { 
                     'autoplay': 0, 'controls': 0, 'showinfo': 0, 'rel': 0, 
                     'modestbranding': 1, 'disablekb': 1, 
-                    'origin': window.location.origin, // Fixed origin for sandbox referrer fix
+                    'origin': window.location.origin, 
                     'enablejsapi': 1 
                 },
                 events: { 
@@ -562,7 +581,6 @@
                     },
                     'onError': (e) => {
                         console.error("YT_INTERNAL_ERR", e);
-                        toast("Melodi akışında bir hata oluştu.");
                     }
                 }
             });
@@ -584,10 +602,10 @@
             
             listen('mobile-nav-toggle', () => get('main-sidebar-panel').classList.add('sidebar-panel-active'));
             listen('btn-sidebar-close', () => get('main-sidebar-panel').classList.remove('sidebar-panel-active'));
-            listen('auth-toggle-mode-btn', switchAuthLayoutMode);
+            listen('auth-toggle-mode', switchAuthLayoutMode);
             listen('p-seek-bar-track', execManualSeekAction);
             
-            const authForm = get('auth-form-machine'); if(authForm) authForm.onsubmit = handleAuthActionExecution;
+            const authForm = get('auth-form-logic'); if(authForm) authForm.onsubmit = handleAuthActionExecution;
             const volSlider = get('p-volume-slider'); if(volSlider) volSlider.oninput = (ev) => appEngine.ytPlayer && appEngine.ytPlayer.setVolume(ev.target.value);
             
             const searchInputEl = get('main-global-search'); 
@@ -620,7 +638,7 @@
             e.preventDefault();
             const emailIn = document.getElementById('auth-email-in').value;
             const passIn = document.getElementById('auth-pass-in').value;
-            const isLoggingIn = document.getElementById('auth-submit-main-btn').innerText.includes("GİRİŞ");
+            const isLoggingIn = document.getElementById('auth-submit-btn').innerText.includes("GİRİŞ");
             
             try {
                 const { data, error } = isLoggingIn 
@@ -635,10 +653,10 @@
         }
 
         function switchAuthLayoutMode() {
-            const btn = document.getElementById('auth-submit-main-btn'), toggle = document.getElementById('auth-toggle-mode-btn'), header = document.getElementById('auth-header-label');
+            const btn = document.getElementById('auth-submit-btn'), toggle = document.getElementById('auth-toggle-mode'), header = document.getElementById('auth-header-label');
             const loggingIn = btn.innerText.includes("GİRİŞ");
             
-            btn.innerText = loggingIn ? "HESAP OLUŞTUR" : "SİSTEME GİRİŞ YAP";
+            btn.innerText = loggingIn ? "HESAP OLUŞTUR" : "GİRİŞ YAP";
             header.innerText = loggingIn ? "YENİ KAYIT" : "HOŞ GELDİN";
             toggle.innerHTML = loggingIn ? "Zaten bir hesabın var mı? <span class='text-indigo-400'>Giriş Yap</span>" : "Hesabın yok mu? <span class='text-indigo-400'>Yeni Kayıt Ol</span>";
         }
@@ -666,7 +684,7 @@
             if(el) el.innerText = t; 
         }
         function terminateSplash() { 
-            const s = document.getElementById('splash-screen'); 
+            const s = document.getElementById('splash-layer'); 
             if(s) {
                 s.style.opacity = '0'; 
                 setTimeout(() => s.classList.add('hide'), 800); 
@@ -696,7 +714,7 @@
         }
 
         async function handleProActivationLogic() {
-            if (document.getElementById('inp-pro-activation-code').value === CORE_CONFIG.PRO_CODE) {
+            if (document.getElementById('inp-pro-activation-code').value === APP_VAR_KEY.PRO_CODE) {
                 await clientSupabaseInstance.from('profiles').upsert({ id: appEngine.user.id, is_pro: true, updated_at: new Date() });
                 applyProArchitecture(true);
                 showProCelebration();
@@ -705,7 +723,7 @@
 
         function runAdEnginePulse() {
             if (!appEngine.isPro && appEngine.isPlaying && !appEngine.adActive) {
-                appEngine.adTicker++; if (appEngine.adTicker >= CORE_CONFIG.AD_SEC_FREQ) triggerAdBreakSequence();
+                appEngine.adTicker++; if (appEngine.adTicker >= APP_VAR_KEY.AD_CLOCK) triggerAdBreakSequence();
             }
         }
 
@@ -717,7 +735,7 @@
             const randomAdIdx = Math.random() > 0.5 ? 1 : 2;
             video.src = `https://${SB_URL_SECURE.split('//')[1]}/storage/v1/object/public/ad/ad${randomAdIdx}.mp4`;
             video.play().catch(() => console.warn("Ad Video Playback Error."));
-            let timerVal = CORE_CONFIG.AD_LEN;
+            let timerVal = APP_VAR_KEY.AD_LEN;
             const adIntervalIv = setInterval(() => { timerVal--; document.getElementById('ad-countdown').innerText = timerVal; if (timerVal <= 0) { clearInterval(adIntervalIv); layer.classList.add('hide'); appEngine.adActive = false; appEngine.ytPlayer && appEngine.ytPlayer.playVideo(); } }, 1000);
         }
 
@@ -799,7 +817,7 @@
             badge.innerText = appEngine.queue.length;
             area.innerHTML = appEngine.queue.map((s, i) => `
                 <div class="queue-item flex items-center gap-8 p-5 bg-white/[0.02] rounded-[2.5rem] border border-white/5 group hover:bg-white/[0.08] transition-all shadow-xl animate-in">
-                    <img src="${s.thumb}" class="w-20 h-20 rounded-[1.2rem] object-cover border-2 border-white/10 shadow-lg group-hover:scale-105 transition-transform">
+                    <img src="${s.thumb}" class="w-16 h-16 rounded-[1.2rem] object-cover border-2 border-white/10 shadow-lg group-hover:scale-105 transition-transform">
                     <div class="flex-1 overflow-hidden">
                         <p class="text-lg font-black truncate text-white leading-tight uppercase tracking-tighter italic">${s.title}</p>
                         <p class="text-[9px] text-neutral-500 mt-2 uppercase font-black tracking-[0.2em] italic">${s.artist}</p>
